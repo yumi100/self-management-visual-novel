@@ -68,7 +68,9 @@
   /* ---------- background ---------- */
   #bgLayer{
     position:absolute; inset:0;
-    background:radial-gradient(ellipse at 50% 20%, #1a2140 0%, #0b0e17 60%, #05070d 100%);
+    /* 背景画像未設定時のデフォルト演出。--bg-layer-gradientはJS側(applyThemeConfig)が--bg-deepの明暗を見て設定する。
+       デフォルト(暗いテーマ)の場合は元のグラデーションと同一値のまま変化しない。 */
+    background:var(--bg-layer-gradient, radial-gradient(ellipse at 50% 20%, #1a2140 0%, #0b0e17 60%, #05070d 100%));
     background-size:cover; background-position:center;
   }
   #bgLayerNext{
@@ -93,7 +95,9 @@
   #titleScreen{
     position:absolute; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; z-index:50;
-    background:radial-gradient(ellipse at 50% 30%, #1a2140 0%, #05070d 75%);
+    /* タイトル画面のデフォルト背景。--title-bg-gradientはJS側(applyThemeConfig)が--bg-deepの明暗を見て設定する。
+       デフォルト(暗いテーマ)の場合は元のグラデーションと同一値のまま変化しない。 */
+    background:var(--title-bg-gradient, radial-gradient(ellipse at 50% 30%, #1a2140 0%, #05070d 75%));
   }
   #titleScreen.hidden{display:none;}
   #titleBgLayer{
@@ -291,13 +295,17 @@
   #galleryPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .gallery-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
   .gallery-cell{aspect-ratio:16/9; border:var(--border-width) solid var(--line); background:var(--bg-deep) center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
-  /* 未解放CGの表示。brightness()フィルターだとbgDeepが明るいテーマの時に暗くなりすぎて見づらいため、
-     常に一定濃度の暗いオーバーレイ(--ui-lock-overlay)を重ねる方式にしている。 */
-  .gallery-cell.locked{cursor:default;}
-  .gallery-cell.locked::before{
+  /* 未解放CGの表示。暗い背景テーマ(デフォルト)では従来通りbrightness()フィルターを使う。
+     明るい背景テーマの場合はfilterだけでは暗くなりすぎて見づらいため、JS側(applyThemeConfig)が
+     data-light-bg属性を付与し、その場合のみ半透明の暗いオーバーレイ方式に切り替える。 */
+  .gallery-cell.locked{filter:brightness(0.25); cursor:default;}
+  #game[data-light-bg="1"] .gallery-cell.locked{filter:none;}
+  #game[data-light-bg="1"] .gallery-cell.locked::before{
     content:''; position:absolute; inset:0; background:var(--ui-lock-overlay); pointer-events:none;
   }
   .gallery-cell span{font-size:10px; color:var(--text-sub); position:relative; z-index:1;}
+  /* ロック中のラベルは、明るい背景テーマで暗いオーバーレイの上に乗る場合のみ、視認性のため明るいグレーに固定する。 */
+  #game[data-light-bg="1"] .gallery-cell.locked span{color:#d8d8d8;}
 
   /* ---------- options panel ---------- */
   #optionsPanel{position:absolute; inset:0; z-index:75; background:var(--panel-bg); padding:34px 42px; overflow-y:auto;}
@@ -1398,6 +1406,20 @@
       root.setProperty('--ui-divider', 'rgba(255,255,255,0.06)');
       root.setProperty('--ui-divider-strong', 'rgba(255,255,255,0.08)');
       root.setProperty('--ui-lock-overlay', 'rgba(0,0,0,0.55)');
+    }
+    // CGギャラリーの未解放表示切り替え用フラグ。暗い背景では従来通りfilter方式、
+    // 明るい背景の場合のみ#gameにdata-light-bg="1"を付与してオーバーレイ方式に切り替える。
+    const gameEl = document.getElementById('game');
+    if(gameEl) gameEl.setAttribute('data-light-bg', isLightColor(themeConfig.bgDeep) ? '1' : '0');
+    // タイトル画面・背景レイヤーのデフォルト演出グラデーション。
+    // 暗い背景テーマの場合はCSS側の初期値（元のグラデーション）をそのまま使うため未設定のままにする。
+    // 明るい背景テーマの場合のみ、bgDeepを基点にしたグラデーションへ切り替えて背景だけ暗く取り残されるのを防ぐ。
+    if(isLightColor(themeConfig.bgDeep)){
+      root.setProperty('--title-bg-gradient', 'radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--bg-deep) 70%, white 10%) 0%, color-mix(in srgb, var(--bg-deep) 90%, black) 75%)');
+      root.setProperty('--bg-layer-gradient', 'radial-gradient(ellipse at 50% 20%, color-mix(in srgb, var(--bg-deep) 70%, white 10%) 0%, var(--bg-deep) 60%, color-mix(in srgb, var(--bg-deep) 90%, black) 100%)');
+    }else{
+      root.removeProperty('--title-bg-gradient');
+      root.removeProperty('--bg-layer-gradient');
     }
     // 通常ボタン（開発者パネル以外）の塗りつぶし。オフなら従来通り透明。
     root.setProperty('--btn-fill', themeConfig.btnFillEnabled
