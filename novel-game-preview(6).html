@@ -1,0 +1,3080 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>星屑ノベル ― フル機能版 (Dev対応)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg-deep:#0b0e17;
+    --accent:#e8b25c;
+    --accent-soft:#7c8fd6;
+    --text-main:#f1eee6;
+    --text-sub:#a9adc4;
+    --line:rgba(232,178,92,0.35);
+    --pink:#d4537e;
+    --dev:#5ee6a8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    width:100%; height:100vh; background:#000;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+  }
+  #game{
+    position:relative; width:100%; max-width:960px; aspect-ratio:16/9;
+    background:var(--bg-deep); overflow:hidden; box-shadow:0 0 60px rgba(0,0,0,0.8);
+    touch-action:manipulation;
+    user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none;
+  }
+  #game.dev-mode{box-shadow:0 0 0 2px var(--dev), 0 0 60px rgba(0,0,0,0.8);}
+  /* devパネル内はテキスト選択を許可（コピペ編集するため） */
+  #devPanel, #devPanel *{ user-select:text; -webkit-user-select:text; }
+
+  /* ---------- background ---------- */
+  #bgLayer{
+    position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 20%, #1a2140 0%, #0b0e17 60%, #05070d 100%);
+    background-size:cover; background-position:center;
+  }
+  #bgLayerNext{
+    position:absolute; inset:0; background-size:cover; background-position:center;
+    opacity:0; transition:opacity 0.5s ease; pointer-events:none;
+  }
+  #bgStars{
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 80% 10%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 60% 35%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 30% 50%, #fff 100%, transparent),
+      radial-gradient(2px 2px at 90% 60%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 45% 75%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 20% 85%, #fff 100%, transparent);
+    opacity:0.5; pointer-events:none;
+  }
+  #bgLayer.has-image{opacity:1;}
+
+  /* ---------- title ---------- */
+  #titleScreen{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; z-index:50;
+    background:radial-gradient(ellipse at 50% 30%, #1a2140 0%, #05070d 75%);
+  }
+  #titleScreen.hidden{display:none;}
+  .dev-badge{
+    position:absolute; top:14px; left:14px; z-index:55;
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--dev);
+    border:1px solid var(--dev); padding:3px 9px; letter-spacing:0.1em;
+    background:rgba(11,14,23,0.8);
+  }
+  .dev-badge.hidden{display:none;}
+  .game-logo{
+    font-family:'Shippori Mincho', serif; font-weight:700;
+    font-size:clamp(26px,5.5vw,48px); color:var(--text-main);
+    letter-spacing:0.15em; text-shadow:0 0 20px rgba(232,178,92,0.5); margin:0;
+  }
+  .game-logo-sub{
+    font-family:'Shippori Mincho', serif; font-size:12px; color:var(--accent-soft);
+    letter-spacing:0.35em; margin:8px 0 34px;
+  }
+  .title-menu{display:flex; flex-direction:column; gap:11px; width:230px;}
+  .title-btn{
+    background:transparent; border:1px solid var(--line); color:var(--text-main);
+    font-family:'Shippori Mincho', serif; font-size:14.5px; letter-spacing:0.18em;
+    padding:11px 0; cursor:pointer; transition:all 0.25s ease;
+  }
+  .title-btn:hover{background:rgba(232,178,92,0.1); border-color:var(--accent); letter-spacing:0.26em;}
+  .title-btn.primary{border-color:var(--accent); color:var(--accent);}
+  .title-btn.primary:hover{background:rgba(232,178,92,0.16);}
+  .title-btn.dev{border-color:var(--dev); color:var(--dev);}
+  .title-btn.dev:hover{background:rgba(94,230,168,0.12);}
+  .title-btn.hidden{display:none;}
+  .title-btn:disabled{opacity:0.32; cursor:default;}
+  .title-btn:disabled:hover{background:transparent; border-color:var(--line); letter-spacing:0.18em;}
+
+  /* ---------- characters ---------- */
+  #charLayer{
+    position:absolute; inset:0; display:flex; align-items:flex-end;
+    justify-content:center; z-index:5; pointer-events:none;
+  }
+  .sprite-slot{
+    position:absolute; bottom:0; width:300px; height:460px;
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; transform:translateY(20px);
+    transition:opacity 0.45s ease, transform 0.45s ease, filter 0.4s ease;
+  }
+  .sprite-slot.show{opacity:1; transform:translateY(0);}
+  .sprite-slot[data-pos="left"]{left:6%;}
+  .sprite-slot[data-pos="center"]{left:50%; transform:translateX(-50%) translateY(20px);}
+  .sprite-slot[data-pos="center"].show{transform:translateX(-50%) translateY(0);}
+  .sprite-slot[data-pos="right"]{right:6%;}
+  .sprite-slot img{max-width:100%; max-height:100%; object-fit:contain; filter:drop-shadow(0 20px 30px rgba(0,0,0,0.5));}
+  .sprite-fallback{
+    width:240px; height:400px; border-radius:120px 120px 0 0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif; font-size:14px; color:var(--text-sub);
+    border:1px solid rgba(255,255,255,0.08); background:rgba(124,143,214,0.06);
+  }
+
+  /* ---------- status HUD (affection: dev only) ---------- */
+  #statusHud{
+    position:absolute; top:12px; left:14px; z-index:30;
+    display:flex; flex-direction:column; gap:6px;
+    opacity:0; transition:opacity 0.3s ease; pointer-events:none;
+  }
+  #statusHud.show{opacity:1;}
+  .status-row{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(11,14,23,0.75); border:1px solid var(--dev);
+    padding:5px 10px; font-size:11px; color:var(--text-sub);
+  }
+  .status-name{color:var(--text-main); min-width:44px;}
+  .status-bar-track{width:90px; height:5px; background:rgba(255,255,255,0.08); position:relative;}
+  .status-bar-fill{height:100%; background:var(--pink); transition:width 0.4s ease; width:0%;}
+  .status-mood-tag{font-size:9.5px; color:var(--accent-soft); border:1px solid rgba(124,143,214,0.4); padding:1px 6px; letter-spacing:0.05em;}
+
+  /* ---------- top bar ---------- */
+  #topBar{
+    position:absolute; top:0; left:0; right:0; display:flex; justify-content:flex-end;
+    gap:6px; padding:10px 14px; z-index:31; opacity:0; transition:opacity 0.3s ease;
+  }
+  #game:hover #topBar{opacity:1;}
+  #game.ui-hidden #topBar, #game.ui-hidden #statusHud{opacity:0 !important; pointer-events:none;}
+  .icon-btn{
+    background:rgba(11,14,23,0.75); border:1px solid var(--line); color:var(--text-sub);
+    font-size:11px; letter-spacing:0.1em; padding:6px 10px; cursor:pointer;
+    font-family:'Zen Kaku Gothic New', sans-serif; transition:all 0.2s ease;
+  }
+  .icon-btn:hover{color:var(--accent); border-color:var(--accent);}
+  .icon-btn.active{color:var(--bg-deep); border-color:var(--accent); background:var(--accent);}
+  .icon-btn.dev-btn{color:var(--dev); border-color:var(--dev);}
+  .icon-btn.dev-btn:hover{background:rgba(94,230,168,0.12);}
+  .icon-btn.hidden{display:none;}
+
+  /* ---------- dialogue box ---------- */
+  #dialogueBox{
+    position:absolute; left:0; right:0; bottom:0; z-index:20;
+    padding:18px 22px 20px;
+    background:linear-gradient(180deg, rgba(11,14,23,0) 0%, rgba(11,14,23,0.92) 18%, rgba(9,11,18,0.97) 100%);
+    cursor:pointer; min-height:170px;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+  }
+  #game.ui-hidden #dialogueBox{opacity:0; transform:translateY(16px); pointer-events:none;}
+  #game.ui-hidden #choiceLayer{opacity:0; pointer-events:none;}
+  #hiddenHint{
+    position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    z-index:21; font-size:11px; color:var(--text-sub); letter-spacing:0.1em;
+    opacity:0; transition:opacity 0.3s ease; pointer-events:none;
+  }
+  #game.ui-hidden #hiddenHint{opacity:0.8;}
+  #nameTag{
+    display:inline-block; font-family:'Shippori Mincho', serif; font-weight:700;
+    font-size:15px; color:var(--bg-deep); background:var(--accent);
+    padding:4px 18px; margin-bottom:10px; clip-path:polygon(0 0,100% 0,94% 100%,0% 100%);
+  }
+  #nameTag.hidden{display:none;}
+  #lineText{font-size:16px; line-height:1.85; color:var(--text-main); min-height:88px; letter-spacing:0.02em;}
+  .dev-tag-inline{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--dev);
+    background:rgba(94,230,168,0.1); border:1px solid rgba(94,230,168,0.35);
+    padding:1px 6px; margin-left:6px; border-radius:2px; vertical-align:middle;
+  }
+  #continueMark{position:absolute; right:24px; bottom:16px; color:var(--accent); font-size:14px; animation:bob 1.2s infinite ease-in-out;}
+  #continueMark.hidden{display:none;}
+  @keyframes bob{0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);}}
+
+  /* ---------- choices ---------- */
+  #choiceLayer{
+    position:absolute; inset:0; z-index:25; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:12px; background:rgba(5,7,13,0.55);
+    padding:20px; transition:opacity 0.25s ease;
+  }
+  #choiceLayer.hidden{display:none;}
+  .choice-btn{
+    background:rgba(18,23,42,0.9); border:1px solid var(--line); color:var(--text-main);
+    font-family:'Zen Kaku Gothic New', sans-serif; font-size:14px; padding:13px 28px;
+    min-width:360px; max-width:520px; cursor:pointer; transition:all 0.2s ease;
+  }
+  .choice-btn:hover{border-color:var(--accent); background:rgba(232,178,92,0.12); transform:translateX(4px);}
+
+  /* ---------- feedback bar (training) ---------- */
+  #feedbackBar{
+    position:absolute; left:0; right:0; bottom:170px; z-index:26;
+    display:flex; justify-content:center; gap:10px; padding:0 20px;
+    opacity:0; transform:translateY(8px); pointer-events:none;
+    transition:opacity 0.3s ease, transform 0.3s ease;
+  }
+  #feedbackBar.show{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .fb-btn{
+    background:rgba(11,14,23,0.88); border:1px solid var(--line); color:var(--text-sub);
+    font-size:12px; padding:7px 16px; cursor:pointer; transition:all 0.2s ease;
+    display:flex; align-items:center; gap:6px;
+  }
+  .fb-btn:hover{color:var(--accent); border-color:var(--accent);}
+  .fb-good:hover{color:var(--pink); border-color:var(--pink);}
+  .fb-tag{font-size:9.5px; color:var(--dev); border:1px solid var(--dev); padding:2px 7px; margin-left:2px;}
+
+  /* ---------- backlog ---------- */
+  #backlogPanel{position:absolute; inset:0; z-index:60; background:rgba(5,7,13,0.97); padding:36px 46px; overflow-y:auto;}
+  #backlogPanel.hidden{display:none;}
+  #backlogPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  .backlog-entry{margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;}
+  .backlog-name{color:var(--accent-soft); font-size:12px; margin-bottom:4px;}
+  .backlog-line{color:var(--text-main); font-size:13.5px; line-height:1.7;}
+  .close-panel{position:absolute; top:18px; right:22px; background:none; border:none; color:var(--text-sub); font-size:22px; cursor:pointer;}
+  .close-panel:hover{color:var(--accent);}
+
+  /* ---------- save/load ---------- */
+  #savePanel{position:absolute; inset:0; z-index:70; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #savePanel.hidden{display:none;}
+  #savePanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
+  .slot-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
+  .save-slot{border:1px solid var(--line); background:rgba(18,23,42,0.7); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
+  .save-slot:hover{border-color:var(--accent); background:rgba(232,178,92,0.08);}
+  .save-slot.empty{color:var(--text-sub); align-items:center; justify-content:center; min-height:100px; font-size:12.5px;}
+  .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg,#1a2140,#0b0e17); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,0.06);}
+  .slot-meta{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
+  .slot-meta b{color:var(--text-main); font-weight:500; display:block; font-size:12px; margin-bottom:2px;}
+  .slot-actions{display:flex; gap:6px; margin-top:2px;}
+  .slot-actions button{flex:1; font-size:10px; padding:5px 0; background:rgba(11,14,23,0.8); border:1px solid var(--line); color:var(--text-sub); cursor:pointer;}
+  .slot-actions button:hover{color:var(--accent); border-color:var(--accent);}
+  .slot-count-ctrl{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-sub); margin-left:auto;}
+  .slot-count-ctrl.hidden{display:none;}
+  .slot-count-ctrl button{background:transparent; border:1px solid var(--dev); color:var(--dev); width:22px; height:22px; cursor:pointer; font-size:13px; line-height:1;}
+
+  /* ---------- CG gallery ---------- */
+  #galleryPanel{position:absolute; inset:0; z-index:65; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #galleryPanel.hidden{display:none;}
+  #galleryPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  .gallery-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
+  .gallery-cell{aspect-ratio:16/9; border:1px solid var(--line); background:#0b0e17 center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
+  .gallery-cell.locked{filter:brightness(0.25); cursor:default;}
+  .gallery-cell span{font-size:10px; color:var(--text-sub);}
+
+  /* ---------- options panel ---------- */
+  #optionsPanel{position:absolute; inset:0; z-index:75; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #optionsPanel.hidden{display:none;}
+  #optionsPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
+  .opt-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06);}
+  .opt-label{font-size:13px; color:var(--text-main); min-width:150px;}
+  .opt-control{display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end;}
+  .opt-control input[type="range"]{-webkit-appearance:none; width:180px; height:3px; background:rgba(255,255,255,0.15); outline:none; cursor:pointer;}
+  .opt-control input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer;}
+  .opt-control input[type="range"]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;}
+  .opt-value{font-size:11px; color:var(--text-sub); min-width:34px; text-align:right;}
+  .opt-toggle{background:transparent; border:1px solid var(--line); color:var(--text-sub); font-size:11px; padding:6px 16px; cursor:pointer; letter-spacing:0.08em; transition:all 0.2s ease; min-width:64px;}
+  .opt-toggle.on{color:var(--accent); border-color:var(--accent); background:rgba(232,178,92,0.1);}
+  .opt-note{font-size:10.5px; color:var(--text-sub); margin-top:24px; line-height:1.6;}
+
+  /* ---------- developer panel ---------- */
+  #devPanel{position:absolute; inset:0; z-index:95; background:rgba(4,5,9,0.99); padding:0; overflow:hidden; display:flex; flex-direction:column;}
+  #devPanel.hidden{display:none;}
+  .dev-header{display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid rgba(94,230,168,0.3); background:rgba(94,230,168,0.05);}
+  .dev-header h3{font-family:'JetBrains Mono', monospace; color:var(--dev); font-size:13px; letter-spacing:0.1em; margin:0; flex:1;}
+  .dev-tabs{display:flex; gap:6px;}
+  .dev-tab{background:transparent; border:1px solid rgba(94,230,168,0.3); color:var(--text-sub); font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; cursor:pointer;}
+  .dev-tab.active{color:var(--dev); border-color:var(--dev); background:rgba(94,230,168,0.1);}
+  .dev-body{flex:1; overflow-y:auto; padding:18px 22px;}
+  .dev-section{display:none;}
+  .dev-section.active{display:block;}
+  .dev-section h4{font-family:'JetBrains Mono', monospace; color:var(--dev); font-size:12px; letter-spacing:0.08em; margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(94,230,168,0.2);}
+  .dev-field-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .dev-field-row label{font-size:11px; color:var(--text-sub); min-width:120px; font-family:'JetBrains Mono', monospace;}
+  .dev-field-row input[type="text"], .dev-field-row select{
+    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:6px 8px;
+  }
+  .dev-mini-btn{background:transparent; border:1px solid var(--dev); color:var(--dev); font-size:10.5px; padding:5px 10px; cursor:pointer; font-family:'JetBrains Mono', monospace; white-space:nowrap;}
+  .dev-mini-btn:hover{background:rgba(94,230,168,0.12);}
+  .dev-mini-btn.danger{border-color:var(--pink); color:var(--pink);}
+  textarea.dev-json{
+    width:100%; min-height:360px; background:#05070d; color:#c8e6d6; border:1px solid rgba(94,230,168,0.25);
+    font-family:'JetBrains Mono', monospace; font-size:12px; padding:14px; line-height:1.6; resize:vertical;
+  }
+  .dev-json-actions{display:flex; gap:8px; margin-top:10px;}
+  .dev-status-line{font-size:11px; color:var(--text-sub); margin-top:8px; font-family:'JetBrains Mono', monospace;}
+  .dev-status-line.err{color:var(--pink);}
+  .dev-status-line.ok{color:var(--dev);}
+  .dev-choice-item{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
+  .dev-choice-item input{flex:1;}
+  .dev-mode-toggle-grid{display:flex; gap:10px; margin-bottom:14px;}
+  .dev-mode-card{flex:1; border:1px solid rgba(255,255,255,0.12); padding:14px; cursor:pointer; transition:all 0.2s ease;}
+  .dev-mode-card.active{border-color:var(--dev); background:rgba(94,230,168,0.08);}
+  .dev-mode-card b{display:block; color:var(--text-main); font-size:12.5px; margin-bottom:4px; font-family:'JetBrains Mono', monospace;}
+  .dev-mode-card span{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
+  .dev-hint-block{
+    background:rgba(94,230,168,0.06); border:1px solid rgba(94,230,168,0.25); padding:12px 14px;
+    font-size:11px; color:var(--text-sub); line-height:1.7; margin-bottom:14px; font-family:'JetBrains Mono', monospace;
+  }
+  .dev-hint-block code{color:var(--dev);}
+  .dev-score-table{width:100%; border-collapse:collapse; font-family:'JetBrains Mono', monospace; font-size:11px; margin-top:10px;}
+  .dev-score-table th{text-align:left; color:var(--dev); border-bottom:1px solid rgba(94,230,168,0.3); padding:6px 8px; font-weight:500;}
+  .dev-score-table td{border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 8px; color:var(--text-sub); vertical-align:top;}
+  .dev-score-table td.score-tags{color:var(--accent-soft); word-break:break-all; max-width:220px;}
+  .dev-score-table td.score-choice{color:var(--text-main); word-break:break-word; max-width:280px;}
+  .dev-score-table input[type="number"]{
+    width:70px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:4px 6px;
+  }
+  .dev-score-empty{font-size:11px; color:var(--text-sub); font-family:'JetBrains Mono', monospace; padding:10px 0;}
+
+  /* ---------- scenario GUI editor ---------- */
+  .dev-subtabs{display:flex; gap:6px; margin-bottom:12px;}
+  .dev-subtab{background:transparent; border:1px solid rgba(232,178,92,0.3); color:var(--text-sub); font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:5px 11px; cursor:pointer;}
+  .dev-subtab.active{color:var(--accent); border-color:var(--accent); background:rgba(232,178,92,0.1);}
+  .dev-subpanel{display:none;}
+  .dev-subpanel.active{display:block;}
+  .scenario-gui-layout{display:flex; gap:12px; align-items:flex-start;}
+  .scenario-label-list{width:170px; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); background:rgba(18,23,42,0.4);}
+  .scenario-label-list-head{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.1); font-size:10.5px; color:var(--text-sub); font-family:'JetBrains Mono', monospace;}
+  #guiLabelList{max-height:420px; overflow-y:auto;}
+  .scenario-label-item{
+    display:flex; align-items:center; justify-content:space-between; gap:4px;
+    padding:7px 10px; font-size:11.5px; color:var(--text-sub); cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono', monospace;
+  }
+  .scenario-label-item:hover{color:var(--text-main); background:rgba(232,178,92,0.06);}
+  .scenario-label-item.active{color:var(--accent); background:rgba(232,178,92,0.12); border-left:2px solid var(--accent);}
+  .scenario-label-item .label-del{color:var(--pink); font-size:10px; opacity:0.7;}
+  .scenario-label-item .label-del:hover{opacity:1;}
+  .scenario-row-area{flex:1; min-width:0;}
+  .scenario-row-area-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .scenario-row-area-head span{font-size:12.5px; color:var(--accent); font-family:'JetBrains Mono', monospace;}
+  .scenario-table-wrap{overflow-x:auto; border:1px solid rgba(255,255,255,0.1);}
+  table.scenario-row-table{min-width:1280px;}
+  table.scenario-row-table th{white-space:nowrap;}
+  table.scenario-row-table td{padding:4px 6px; vertical-align:middle;}
+  table.scenario-row-table tr.row-dragging{opacity:0.35;}
+  table.scenario-row-table tr.row-dragover{box-shadow:inset 0 2px 0 var(--accent);}
+  .row-drag-handle{cursor:grab; color:var(--text-sub); text-align:center; user-select:none;}
+  .row-drag-handle:active{cursor:grabbing;}
+  table.scenario-row-table input[type="text"], table.scenario-row-table select{
+    width:100%; min-width:64px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:4px 5px;
+  }
+  table.scenario-row-table input:disabled, table.scenario-row-table select:disabled{
+    opacity:0.25; background:rgba(255,255,255,0.02); cursor:not-allowed;
+  }
+  .row-cell-btn{
+    background:rgba(94,230,168,0.08); border:1px solid rgba(94,230,168,0.3); color:var(--dev);
+    font-size:10px; padding:5px 8px; cursor:pointer; font-family:'JetBrains Mono', monospace; white-space:nowrap; width:100%;
+  }
+  .row-cell-btn:hover{background:rgba(94,230,168,0.18);}
+  .row-cell-btn:disabled{opacity:0.25; cursor:not-allowed; background:transparent;}
+  .row-del-btn{background:transparent; border:1px solid var(--pink); color:var(--pink); font-size:10px; padding:5px 7px; cursor:pointer; font-family:'JetBrains Mono', monospace;}
+  .row-del-btn:hover{background:rgba(212,83,126,0.12);}
+
+  /* ---------- sub editor overlay (choices / aiChoice candidates / variants) ---------- */
+  .gui-sub-editor-overlay{
+    position:absolute; inset:0; z-index:120; background:rgba(5,7,13,0.88);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .gui-sub-editor-overlay.hidden{display:none;}
+  .gui-sub-editor-panel{
+    width:100%; max-width:640px; max-height:100%; overflow-y:auto;
+    background:#0b0e17; border:1px solid var(--dev); padding:16px;
+  }
+  .gui-sub-editor-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .gui-sub-editor-head span{font-size:13px; color:var(--dev); font-family:'JetBrains Mono', monospace;}
+  .gui-sub-editor-body{font-family:'JetBrains Mono', monospace; font-size:11.5px;}
+  .sub-editor-item{border:1px solid rgba(255,255,255,0.1); padding:10px; margin-bottom:10px; background:rgba(255,255,255,0.02);}
+  .sub-editor-item-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--text-sub); font-size:10.5px;}
+  .sub-editor-field{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
+  .sub-editor-field label{min-width:80px; color:var(--text-sub); font-size:10.5px;}
+  .sub-editor-field input[type="text"], .sub-editor-field textarea{
+    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    font-family:'JetBrains Mono', monospace; font-size:11px; padding:5px 7px;
+  }
+  .sub-editor-field textarea{min-height:44px; resize:vertical;}
+
+  /* ---------- fade / toast ---------- */
+  #fadeOverlay{position:absolute; inset:0; background:#000; z-index:80; opacity:0; pointer-events:none; transition:opacity 0.35s ease;}
+  #fadeOverlay.on{opacity:1;}
+  #toast{
+    position:absolute; left:50%; bottom:24px; transform:translateX(-50%);
+    background:rgba(11,14,23,0.92); border:1px solid var(--line); color:var(--accent);
+    font-size:12px; letter-spacing:0.1em; padding:8px 18px; z-index:96; opacity:0;
+    pointer-events:none; transition:opacity 0.3s ease; text-align:center; white-space:nowrap;
+  }
+  #toast.show{opacity:1;}
+
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="game">
+  <h2 class="sr-only">開発者モードと隠しタグ、学習型好感度エンジン、BGM・効果音を備えたノベルゲームの雛形。</h2>
+
+  <div id="bgLayer"></div>
+  <div id="bgLayerNext"></div>
+  <div id="bgStars"></div>
+
+  <div id="charLayer">
+    <div class="sprite-slot" id="spriteLeft" data-pos="left"></div>
+    <div class="sprite-slot" id="spriteCenter" data-pos="center"></div>
+    <div class="sprite-slot" id="spriteRight" data-pos="right"></div>
+  </div>
+
+  <div id="statusHud"></div>
+  <div class="dev-badge hidden" id="devBadge">DEV MODE</div>
+
+  <div id="topBar">
+    <button class="icon-btn dev-btn hidden" id="btnDevPanel">DEV</button>
+    <button class="icon-btn" id="btnGallery">CG</button>
+    <button class="icon-btn" id="btnSave">セーブ</button>
+    <button class="icon-btn" id="btnLoad">ロード</button>
+    <button class="icon-btn" id="btnLog">ログ</button>
+    <button class="icon-btn" id="btnAuto">オート: OFF</button>
+    <button class="icon-btn" id="btnSkip" title="既読の行は自動で読み飛ばします。未読の行はいつも通り止まって表示します。">スキップ: OFF</button>
+    <button class="icon-btn" id="btnOptions">設定</button>
+    <button class="icon-btn" id="btnTitle">タイトルへ</button>
+  </div>
+
+  <div id="feedbackBar">
+    <button class="fb-btn fb-good" id="fbGood"><span>♡</span>今の返しはよかった</button>
+    <button class="fb-btn fb-bad" id="fbBad"><span>×</span>今の返しは微妙だった</button>
+  </div>
+
+  <div id="dialogueBox">
+    <span id="nameTag" class="hidden"></span>
+    <div id="lineText"></div>
+    <span id="continueMark" class="hidden">▼</span>
+  </div>
+  <div id="hiddenHint">2本指タップでテキストを表示</div>
+
+  <div id="choiceLayer" class="hidden"></div>
+
+  <div id="backlogPanel" class="hidden">
+    <button class="close-panel" id="btnCloseLog">×</button>
+    <h3>これまでの会話</h3>
+    <div id="backlogList"></div>
+  </div>
+
+  <div id="savePanel" class="hidden">
+    <button class="close-panel" id="btnCloseSave">×</button>
+    <h3 id="savePanelTitle">セーブ
+      <span class="slot-count-ctrl hidden" id="slotCountCtrl">
+        スロット数: <span id="slotCountVal">6</span>
+        <button id="slotCountMinus">－</button><button id="slotCountPlus">＋</button>
+      </span>
+    </h3>
+    <div class="slot-grid" id="slotGrid"></div>
+  </div>
+
+  <div id="galleryPanel" class="hidden">
+    <button class="close-panel" id="btnCloseGallery">×</button>
+    <h3>CGギャラリー</h3>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
+
+  <div id="optionsPanel" class="hidden">
+    <button class="close-panel" id="btnCloseOptions">×</button>
+    <h3>設定</h3>
+    <div class="opt-row">
+      <span class="opt-label">BGM 音量</span>
+      <div class="opt-control"><input type="range" id="optBgmVol" min="0" max="100" value="70" step="1"><span class="opt-value" id="optBgmVolVal">70</span></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">BGM 再生</span>
+      <div class="opt-control"><button class="opt-toggle on" id="optBgmToggle">ON</button></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">効果音 音量</span>
+      <div class="opt-control"><input type="range" id="optSeVol" min="0" max="100" value="80" step="1"><span class="opt-value" id="optSeVolVal">80</span></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">効果音 再生</span>
+      <div class="opt-control"><button class="opt-toggle on" id="optSeToggle">ON</button></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">テキスト速度</span>
+      <div class="opt-control"><input type="range" id="optTextSpeed" min="1" max="10" value="5" step="1"><span class="opt-value" id="optTextSpeedVal">5</span></div>
+    </div>
+    <div class="opt-row">
+      <span class="opt-label">調教モード表示</span>
+      <div class="opt-control"><button class="opt-toggle on" id="optTrainToggle">ON</button></div>
+    </div>
+    <p class="opt-note">「調教モード表示」をOFFにすると、♡/×の好感度フィードバックは出さずに自動でスキップされ、物語はそのまま進みます。設定はブラウザに自動保存されます。会話画面で2本指タップするとテキスト欄を一時的に隠せます（もう一度タップで復帰）。</p>
+  </div>
+
+  <!-- ===================== 開発者パネル ===================== -->
+  <div id="devPanel" class="hidden">
+    <div class="dev-header">
+      <h3>&#9881; DEVELOPER PANEL</h3>
+      <div class="dev-tabs">
+        <button class="dev-tab active" data-tab="mode">モード</button>
+        <button class="dev-tab" data-tab="scenario">シナリオ</button>
+        <button class="dev-tab" data-tab="assets">アセット</button>
+        <button class="dev-tab" data-tab="save">セーブ設定</button>
+        <button class="dev-tab" data-tab="tags">隠しタグ</button>
+        <button class="dev-tab" data-tab="statetags">状況タグ</button>
+        <button class="dev-tab" data-tab="scores">学習スコア</button>
+      </div>
+      <button class="dev-mini-btn danger" id="btnDevDisable">開発者モード解除</button>
+      <button class="dev-mini-btn" id="btnDevClose">閉じる ×</button>
+    </div>
+    <div class="dev-body">
+
+      <div class="dev-section active" data-section="mode">
+        <h4>ゲームモード</h4>
+        <div class="dev-mode-toggle-grid">
+          <div class="dev-mode-card active" id="modeCardScenario" data-mode="scenario">
+            <b>シナリオモード</b>
+            <span>台本通りに進行し、好感度に応じたエンディングへ分岐する通常プレイ。</span>
+          </div>
+          <div class="dev-mode-card" id="modeCardEndless" data-mode="endless">
+            <b>エンドレスモード</b>
+            <span>学習型AIがaiChoiceシーンを無限ループで生成し続け、好感度調教を延々と検証できる開発者向けモード。</span>
+          </div>
+        </div>
+        <div id="endlessControls" style="display:none;">
+          <div class="dev-field-row">
+            <label>対象キャラ</label>
+            <select id="endlessCharSelect"></select>
+          </div>
+          <div class="dev-mode-toggle-grid" style="margin-bottom:10px;">
+            <div class="dev-mode-card active" id="endlessSubCardFixed" data-submode="fixed">
+              <b>固定モード</b>
+              <span>同じ状況・同じ選択肢セットのまま何度も再抽選。テキスト送りのたびに同一状況への調教を重ねられます。</span>
+            </div>
+            <div class="dev-mode-card" id="endlessSubCardCycle" data-submode="cycle">
+              <b>周回モード</b>
+              <span>登録済みシーンを送るたびに次々巡回。通しプレイに近い形で各シーンを順番に調教できます。</span>
+            </div>
+          </div>
+          <p class="dev-status-line">タイマーではなく、クリック/タップ（またはAUTO）でテキストを送るたびに次の発話が生成されます。フィードバック待ち中は先に進めません。</p>
+          <button class="dev-mini-btn" id="btnEndlessStart">エンドレス開始</button>
+          <button class="dev-mini-btn danger" id="btnEndlessStop">停止してタイトルへ</button>
+        </div>
+        <div class="dev-hint-block">
+          開発者モードでは、地の文・キャラのセリフ問わず全ての行に♡/×フィードバックUIが出せます（aiChoice行のみ対象）。好感度ゲージは開発者モード時のみ画面左上に表示されます。
+        </div>
+      </div>
+
+      <div class="dev-section" data-section="scenario">
+        <h4>シナリオ エディタ</h4>
+        <div class="dev-subtabs">
+          <button class="dev-subtab active" data-subtab="gui">表形式で編集</button>
+          <button class="dev-subtab" data-subtab="raw">生JSON編集（上級者向け）</button>
+        </div>
+
+        <!-- ============ GUIテーブル編集 ============ -->
+        <div class="dev-subpanel active" data-subpanel="gui">
+          <div class="scenario-gui-layout">
+            <div class="scenario-label-list">
+              <div class="scenario-label-list-head">
+                <span>ラベル一覧</span>
+                <button class="dev-mini-btn" id="btnGuiAddLabel">＋ 追加</button>
+              </div>
+              <div id="guiLabelList"></div>
+            </div>
+            <div class="scenario-row-area">
+              <div class="scenario-row-area-head">
+                <span id="guiCurrentLabelName">（ラベルを選択してください）</span>
+                <button class="dev-mini-btn" id="btnGuiAddRow">＋ 行を追加</button>
+              </div>
+              <div class="scenario-table-wrap">
+                <table class="dev-score-table scenario-row-table" id="guiRowTable">
+                  <thead>
+                    <tr>
+                      <th style="width:24px;"></th>
+                      <th>種類</th>
+                      <th>話者名</th>
+                      <th>本文/地の文</th>
+                      <th>goto</th>
+                      <th>char</th>
+                      <th>scene</th>
+                      <th>timeOfDay</th>
+                      <th>bg</th>
+                      <th>bgm</th>
+                      <th>se</th>
+                      <th>cg</th>
+                      <th>unlockIf</th>
+                      <th>extraTags</th>
+                      <th>選択肢/候補</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="guiRowTableBody"></tbody>
+                </table>
+              </div>
+              <p class="dev-status-line">行頭の <code>≡</code> をドラッグすると自由に並べ替えられます。グレーアウトしている列は、その行の種類では使われない項目です。</p>
+            </div>
+          </div>
+          <div class="dev-status-line" id="guiScenarioStatus"></div>
+        </div>
+
+        <!-- ============ 生JSON編集 ============ -->
+        <div class="dev-subpanel" data-subpanel="raw">
+          <p class="dev-status-line">script オブジェクト全体を直接編集できます。ラベル(シーン名)をキーに、行の配列を値にしてください。表形式編集とは「反映する」ボタンを押すたびに同期されます。</p>
+          <textarea class="dev-json" id="scenarioEditor" spellcheck="false"></textarea>
+          <div class="dev-json-actions">
+            <button class="dev-mini-btn" id="btnScenarioApply">反映する</button>
+            <button class="dev-mini-btn" id="btnScenarioFormat">整形</button>
+            <button class="dev-mini-btn" id="btnScenarioAddLabel">新規ラベル追加</button>
+            <button class="dev-mini-btn" id="btnScenarioAddChoiceLine">選択肢テンプレ挿入</button>
+          </div>
+          <div class="dev-status-line" id="scenarioStatus"></div>
+        </div>
+
+        <div class="dev-hint-block">
+          行の型: <code>{name, text}</code> 通常セリフ / <code>{text:"jump", goto}</code> ジャンプ /
+          <code>{choices:[{text,goto,affection,mood}]}</code> 選択肢（textには <code>[[flag:xxx]]</code> 等の隠しタグも埋め込み可能。affection/moodは確定効果、隠しタグは併用できる追加効果） /
+          <code>{aiChoice:true, char, scene, timeOfDay, choices:[...]}</code> AI駆動セリフ（地の文にしたい場合はnameを省略）。候補セリフには <code>[[face:xxx]]</code> だけでなく <code>[[affection:+N]]</code> <code>[[mood:xxx]]</code> <code>[[flag:xxx]]</code> 等の隠しタグも使えます（選ばれた候補のタグだけが適用される）/
+          <code>variants: {"タグ集合(カンマ区切り)": [追加候補,...]}</code>: 現在の状況タグが該当タグを全て含む時だけ、その追加候補をchoicesにマージして抽選対象にする（例: <code>"affection_high,mood_happy": ["……"]</code>）。学習スコアは choices/variants 問わずセリフ文字列ごとに個別管理されます。/
+          <code>{bg, bgm, se, show:[{char,pos}], hide:[pos]}</code> 演出プロパティは他のプロパティと併記可能。
+          隠しタグは text 文字列の末尾に <code>[[key:value]]</code> の形式で追加してください（例: <code>"また明日ね。[[affection:+3]][[mood:happy]]"</code>）。
+          <code>{text:"cgUnlock", cg, unlockIf}</code>: CG解禁。<code>unlockIf</code>省略時は無条件解禁。指定時は<code>"affection_high"</code>のようなタグ文字列（配列でAND条件も可）を満たした時だけ解禁されます。
+        </div>
+      </div>
+
+      <!-- 選択肢/候補文などサブ構造を編集するオーバーレイパネル -->
+      <div id="guiSubEditorOverlay" class="gui-sub-editor-overlay hidden">
+        <div class="gui-sub-editor-panel">
+          <div class="gui-sub-editor-head">
+            <span id="guiSubEditorTitle">編集</span>
+            <button class="dev-mini-btn" id="btnGuiSubEditorClose">閉じる ×</button>
+          </div>
+          <div class="gui-sub-editor-body" id="guiSubEditorBody"></div>
+        </div>
+      </div>
+
+      <div class="dev-section" data-section="assets">
+        <h4>キャラクター</h4>
+        <div id="devCharList"></div>
+        <button class="dev-mini-btn" id="btnAddChar">＋ キャラ追加</button>
+
+        <h4 style="margin-top:20px;">背景</h4>
+        <div id="devBgList"></div>
+        <button class="dev-mini-btn" id="btnAddBg">＋ 背景追加</button>
+
+        <h4 style="margin-top:20px;">BGM</h4>
+        <div id="devBgmList"></div>
+        <button class="dev-mini-btn" id="btnAddBgm">＋ BGM追加</button>
+
+        <h4 style="margin-top:20px;">効果音(SE)</h4>
+        <div id="devSeList"></div>
+        <button class="dev-mini-btn" id="btnAddSe">＋ SE追加</button>
+
+        <h4 style="margin-top:20px;">CGギャラリー</h4>
+        <div id="devCgList"></div>
+        <button class="dev-mini-btn" id="btnAddCg">＋ CG追加</button>
+      </div>
+
+      <div class="dev-section" data-section="save">
+        <h4>セーブスロット</h4>
+        <div class="dev-field-row">
+          <label>スロット数</label>
+          <input type="text" id="devSlotCount" value="6" style="max-width:80px;">
+          <button class="dev-mini-btn" id="btnApplySlotCount">適用</button>
+        </div>
+        <p class="dev-status-line">増やすと新しい空きスロットが追加されます。減らすと超過分のセーブデータは失われます。</p>
+        <h4 style="margin-top:20px;">データ管理</h4>
+        <button class="dev-mini-btn danger" id="btnWipeAll">全セーブ/学習データを消去</button>
+      </div>
+
+      <div class="dev-section" data-section="tags">
+        <h4>隠しタグ・シミュレーター</h4>
+        <p class="dev-status-line">テキストに仕込む <code>[[key:value]]</code> タグの動作をここで試せます。</p>
+        <div class="dev-field-row">
+          <label>テスト文字列</label>
+          <input type="text" id="tagTestInput" value="ありがとう。[[affection:+5]][[mood:happy]][[flag:met_akari]]">
+        </div>
+        <button class="dev-mini-btn" id="btnTagTest">パース実行</button>
+        <div class="dev-status-line" id="tagTestResult"></div>
+        <div class="dev-hint-block">
+          対応キー: <code>affection:+N/-N</code>（MAIN_CHARの好感度を増減）、<code>mood:xxx</code>（normal/work_stress/tired/happy）、
+          <code>flag:xxx</code>（任意のフラグを立てる。分岐条件には使わずログ記録のみの簡易実装）。
+          シナリオモードのプレイヤー画面ではタグ文字列は自動で除去されて表示され、進行には一切影響しません。
+        </div>
+      </div>
+
+      <div class="dev-section" data-section="statetags">
+        <h4>状況タグカテゴリ（choiceの重み付けに使う排他グループ）</h4>
+        <p class="dev-status-line">
+          <code>aiChoice</code> の判断材料になる「状況タグ」のカテゴリを管理します。
+          1カテゴリにつき、同時に1つの値だけが選ばれます（例: moodなら normal/tired のどれか1つ）。
+          <code>mood</code> と <code>affection</code> は組み込みカテゴリです。
+        </p>
+        <div id="devTagCategoryList"></div>
+        <button class="dev-mini-btn" id="btnAddTagCategory">＋ カテゴリ追加（enum型）</button>
+        <h4 style="margin-top:20px;">extraTags プレビュー</h4>
+        <p class="dev-status-line">
+          シナリオJSON側の <code>aiChoice</code> 行に <code>extraTags: ["rainy","first_time"]</code> のように書くと、
+          カテゴリに属さない自由なタグを状況に追加できます（併存OK・排他チェックなし）。
+        </p>
+      </div>
+
+      <div class="dev-section" data-section="scores">
+        <h4>学習スコア・エディタ</h4>
+        <p class="dev-status-line">
+          <code>aiChoice</code> の学習データ（どのタグ集合の時、どのセリフが何点か）を一覧・直接編集できます。
+          エンドレスモードで♡/×を送る代わりに、ここで直接スコアを書き込んで狙った挙動を作れます。
+        </p>
+        <div class="dev-field-row">
+          <label>キャラ</label>
+          <select id="scoreCharSelect"></select>
+          <label>シーン</label>
+          <select id="scoreSceneSelect"></select>
+        </div>
+        <div id="scoreTableWrap"></div>
+        <h4 style="margin-top:18px;">新規エントリ追加</h4>
+        <div class="dev-field-row" style="flex-wrap:wrap; align-items:flex-start;">
+          <input type="text" id="scoreNewTags" placeholder="タグ集合（カンマ区切り 例: affection_high,mood_happy,time_day）" style="min-width:320px;">
+        </div>
+        <div class="dev-field-row" style="flex-wrap:wrap; align-items:flex-start;">
+          <input type="text" id="scoreNewChoice" placeholder="セリフ文字列（[[face:xxx]]等のタグを含めてもよい）" style="min-width:320px;">
+          <input type="text" id="scoreNewScore" placeholder="スコア（例: 3 / 省略時0）" style="max-width:120px;">
+          <button class="dev-mini-btn" id="btnScoreAdd">追加</button>
+        </div>
+        <div class="dev-status-line" id="scoreStatus"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="titleScreen">
+    <p class="game-logo">星屑ノベル</p>
+    <p class="game-logo-sub">S T A R D U S T &nbsp; N O V E L</p>
+    <div class="title-menu">
+      <button class="title-btn primary" id="btnStart">はじめから</button>
+      <button class="title-btn" id="btnTitleLoad" disabled>つづきから</button>
+      <button class="title-btn" id="btnTitleGallery">CGギャラリー</button>
+      <button class="title-btn" id="btnTitleOptions">設定</button>
+      <button class="title-btn dev hidden" id="btnTitleDev">開発者パネルを開く</button>
+    </div>
+  </div>
+
+  <div id="fadeOverlay"></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ============================================================
+  // 0. 開発者モード判定
+  //    ・URLに ?dev=1 を付けてアクセスした時だけ有効（記憶しない）
+  // ============================================================
+  function resolveDevMode(){
+    const params = new URLSearchParams(window.location.search);
+    return params.get('dev') === '1' || params.get('dev') === 'true';
+  }
+  const IS_DEV = resolveDevMode();
+
+  // ============================================================
+  // 1. サウンドエンジン（Web Audio API）
+  // ============================================================
+  const SoundEngine = (function(){
+    let ctx = null, bgmGain = null, seGain = null;
+    let currentBgmSource = null, currentBgmGainNode = null;
+    const buffers = {};
+    function ensureCtx(){
+      if(ctx) return ctx;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return null;
+      ctx = new AC();
+      bgmGain = ctx.createGain(); seGain = ctx.createGain();
+      bgmGain.connect(ctx.destination); seGain.connect(ctx.destination);
+      return ctx;
+    }
+    function unlock(){ const c = ensureCtx(); if(c && c.state === 'suspended') c.resume(); }
+    async function loadBuffer(url){
+      if(!url) return null;
+      if(buffers[url]) return buffers[url];
+      try{
+        const res = await fetch(url);
+        const arr = await res.arrayBuffer();
+        const buf = await ensureCtx().decodeAudioData(arr);
+        buffers[url] = buf; return buf;
+      }catch(e){ console.warn('音声読み込み失敗:', url, e); return null; }
+    }
+    async function playBgm(url){
+      const c = ensureCtx(); if(!c || !url) return;
+      const buf = await loadBuffer(url); if(!buf) return;
+      if(currentBgmSource){
+        const oldGain = currentBgmGainNode, oldSource = currentBgmSource;
+        try{ oldGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.8); }catch(e){}
+        setTimeout(() => { try{ oldSource.stop(); }catch(e){} }, 850);
+      }
+      const source = c.createBufferSource();
+      source.buffer = buf; source.loop = true;
+      const g = c.createGain(); g.gain.value = 0;
+      source.connect(g); g.connect(bgmGain); source.start(0);
+      g.gain.linearRampToValueAtTime(1, c.currentTime + 0.8);
+      currentBgmSource = source; currentBgmGainNode = g;
+    }
+    async function playSe(url){
+      const c = ensureCtx(); if(!c || !url) return;
+      const buf = await loadBuffer(url); if(!buf) return;
+      const source = c.createBufferSource();
+      source.buffer = buf; source.connect(seGain); source.start(0);
+    }
+    function setBgmVolume(v){ if(bgmGain) bgmGain.gain.value = v; }
+    function setSeVolume(v){ if(seGain) seGain.gain.value = v; }
+    return { unlock, playBgm, playSe, setBgmVolume, setSeVolume };
+  })();
+
+  // ============================================================
+  // 2. 学習型ダイアログメモリシステム
+  // ============================================================
+  class DialogueMemorySystem{
+    constructor(historyLimit){
+      this.scores = {}; this.trainedKeys = new Set(); this.recentHistory = [];
+      this.historyLimit = historyLimit || 2;
+    }
+    static makeKey(stateCombo, choice){ return stateCombo.slice().sort().join(',') + '|||' + choice; }
+    getScore(stateCombo, choice){ return this.scores[DialogueMemorySystem.makeKey(stateCombo, choice)] || 0; }
+    giveFeedback(stateCombo, choice, isGood, weight){
+      weight = weight || 1;
+      const key = DialogueMemorySystem.makeKey(stateCombo, choice);
+      this.scores[key] = (this.scores[key] || 0) + (isGood ? weight : -weight);
+      this.trainedKeys.add(key);
+    }
+    toJSON(){ return { scores: this.scores, trainedKeys: Array.from(this.trainedKeys), recentHistory: this.recentHistory }; }
+    static fromJSON(data, historyLimit){
+      const s = new DialogueMemorySystem(historyLimit);
+      s.scores = (data && data.scores) || {};
+      s.trainedKeys = new Set((data && data.trainedKeys) || []);
+      s.recentHistory = (data && data.recentHistory) || [];
+      return s;
+    }
+    decideChoice(currentState, availableChoices){
+      const candidates = [];
+      availableChoices.forEach(c => { const score = this.getScore(currentState, c); if(score > 0) candidates.push([c, score]); });
+      if(candidates.length === 0){
+        const chosen = availableChoices[Math.floor(Math.random() * availableChoices.length)];
+        this._pushHistory(chosen); return chosen;
+      }
+      let filtered = candidates.filter(([c]) => this.recentHistory.indexOf(c) === -1);
+      if(filtered.length === 0) filtered = candidates;
+      const total = filtered.reduce((sum, [,s]) => sum + Math.max(s, 0.01), 0);
+      let r = Math.random() * total, chosen = filtered[0][0];
+      for(const [c, s] of filtered){ r -= Math.max(s, 0.01); if(r <= 0){ chosen = c; break; } }
+      this._pushHistory(chosen); return chosen;
+    }
+    _pushHistory(choice){ this.recentHistory.push(choice); if(this.recentHistory.length > this.historyLimit) this.recentHistory.shift(); }
+  }
+  // ============================================================
+  // 5.5 状況タグカテゴリ（排他グループ）―― データ駆動化
+  //     ・"同時に1つしか選べない" カテゴリを開発者パネルから追加/編集できるようにする
+  //     ・mood / affection は組み込みカテゴリとして最初から登録されている
+  //     ・affection のみ数値のしきい値(thresholds)でタグに変換する特殊カテゴリ
+  // ============================================================
+  const TAG_CATEGORY_KEY = 'stardustNovel_tagCategories_v1';
+  let tagCategories = {
+    mood: {
+      type: 'enum',
+      values: ['normal', 'work_stress', 'tired', 'happy'],
+      fallback: 'normal'
+    },
+    affection: {
+      type: 'threshold',
+      // [上限未満, ラベル] を昇順で並べる。最後の要素の上限は無視され「それ以上」を意味する。
+      thresholds: [
+        { lt: 30, label: 'low' },
+        { lt: 70, label: 'mid' },
+        { lt: Infinity, label: 'high' }
+      ]
+    }
+  };
+  function loadTagCategories(){
+    try{
+      const raw = localStorage.getItem(TAG_CATEGORY_KEY);
+      if(raw) tagCategories = JSON.parse(raw);
+    }catch(e){}
+  }
+  function persistTagCategories(){
+    try{ localStorage.setItem(TAG_CATEGORY_KEY, JSON.stringify(tagCategories)); }catch(e){}
+  }
+  function resolveCategoryTag(categoryKey, rawValue){
+    const cat = tagCategories[categoryKey];
+    if(!cat) return null;
+    if(cat.type === 'enum'){
+      const v = (cat.values.indexOf(rawValue) === -1) ? cat.fallback : rawValue;
+      return categoryKey + '_' + v;
+    }
+    if(cat.type === 'threshold'){
+      const num = Number(rawValue) || 0;
+      const hit = cat.thresholds.find(t => num < t.lt);
+      const label = hit ? hit.label : cat.thresholds[cat.thresholds.length - 1].label;
+      return categoryKey + '_' + label;
+    }
+    return null;
+  }
+
+  function getMoodTag(mood){ return resolveCategoryTag('mood', mood); }
+  function getAffectionTag(affection){ return resolveCategoryTag('affection', affection); }
+  function buildState(opts){
+    // coreState に積まれている、登録済みカテゴリ全てを自動でタグ化する。
+    // opts.coreState が無い呼び出し（後方互換）のため mood/affection は個別にも受け付ける。
+    const tags = ['time_' + opts.timeOfDay];
+    const coreState = opts.coreState || { mood: opts.mood, affection: opts.affection };
+    Object.keys(tagCategories).forEach(catKey => {
+      if(!(catKey in coreState)) return;
+      const t = resolveCategoryTag(catKey, coreState[catKey]);
+      if(t) tags.push(t);
+    });
+    // extraTags はシナリオJSON側が自由に書ける入力口のため、ここで重複を除去しておく。
+    // 除去しないと、例えば extraTags:["mood_happy"] のように既存カテゴリのタグ文字列と
+    // 偶然/意図せず被った場合や、extraTags内で同じタグを2回書いた場合に、
+    // DialogueMemorySystem.makeKey() が「本来同じ状況のはずなのに別キー」を生成してしまい、
+    // 学習データが分裂するバグになる（makeKey自体はソートのみで重複除去していないため）。
+    if(opts.extraTags) tags.push(...opts.extraTags);
+    return Array.from(new Set(tags));
+  }
+  class CharacterDialogueHub{
+    constructor(characterKey){
+      this.characterKey = characterKey; this.scenes = {};
+      this.coreState = { mood: 'normal', affection: 20 };
+    }
+    registerScene(sceneName, historyLimit){
+      if(!this.scenes[sceneName]) this.scenes[sceneName] = new DialogueMemorySystem(historyLimit);
+      return this.scenes[sceneName];
+    }
+    getScene(sceneName){
+      if(!this.scenes[sceneName]) this.registerScene(sceneName, 3);
+      return this.scenes[sceneName];
+    }
+    updateCoreState(patch){ Object.keys(patch).forEach(k => { this.coreState[k] = patch[k]; }); }
+    decide(sceneName, timeOfDay, availableChoices, extraTags){
+      const scene = this.getScene(sceneName);
+      const currentState = buildState({ timeOfDay, coreState: this.coreState, extraTags });
+      const chosen = scene.decideChoice(currentState, availableChoices);
+      return { chosen, state: currentState };
+    }
+    giveFeedback(sceneName, currentState, choice, isGood, weight){ this.getScene(sceneName).giveFeedback(currentState, choice, isGood, weight); }
+    toJSON(){
+      const scenesOut = {};
+      Object.keys(this.scenes).forEach(k => { scenesOut[k] = this.scenes[k].toJSON(); });
+      return { coreState: this.coreState, scenes: scenesOut };
+    }
+    loadFrom(data){
+      if(!data) return;
+      if(data.coreState) this.coreState = data.coreState;
+      if(data.scenes) Object.keys(data.scenes).forEach(k => { this.scenes[k] = DialogueMemorySystem.fromJSON(data.scenes[k]); });
+    }
+  }
+  const MEMORY_KEY = 'stardustNovel_dialogueMemory_v1';
+  const hubs = {};
+  function getHub(charKey){ if(!hubs[charKey]) hubs[charKey] = new CharacterDialogueHub(charKey); return hubs[charKey]; }
+  function loadAllHubs(){
+    try{
+      const raw = localStorage.getItem(MEMORY_KEY); if(!raw) return;
+      const data = JSON.parse(raw);
+      Object.keys(data).forEach(charKey => getHub(charKey).loadFrom(data[charKey]));
+    }catch(e){}
+  }
+  function persistAllHubs(){
+    try{
+      const out = {}; Object.keys(hubs).forEach(k => { out[k] = hubs[k].toJSON(); });
+      localStorage.setItem(MEMORY_KEY, JSON.stringify(out));
+    }catch(e){}
+  }
+
+  // ============================================================
+  // 2.5 既読管理（スキップ機能の土台）
+  //   ・行の「位置」(label+index)ではなく「内容」からフィンガープリントを作り、それをキーにする。
+  //     理由: シナリオを編集（行の追加/削除/並べ替え）しても、内容が同じなら既読データが保たれるようにするため。
+  //     文言を修正した場合は別物として扱われ、既読が外れて再度表示される（安全側の挙動）。
+  //   ・行の種類（通常セリフ/aiChoice/選択肢いずれも）を問わず、同じ仕組みで一元管理する。
+  //   ・aiChoiceは毎回抽選が変わるため「その場面を1回でも通過したか」という粒度にはできない。
+  //     ここでは「抽選で実際に選ばれた結果（セリフ文字列）を見たかどうか」という、
+  //     DialogueMemorySystemのキー生成と同じ考え方（内容ベース）で統一している。
+  //   ・キャラのhubsとは独立した永続化キーを持つ。セーブスロット（進行位置）をロードし直しても、
+  //     既読情報自体はプレイスルーをまたいで蓄積され続ける（セーブと同じ扱いにはしない）。
+  // ============================================================
+  const READ_HISTORY_KEY = 'stardustNovel_readHistory_v1';
+  const readHistory = new Set();
+  // 簡易ハッシュ（djb2）。暗号強度は不要、行の内容を短い文字列に落とし込めれば十分。
+  function simpleHash(str){
+    let h = 5381;
+    for(let i = 0; i < str.length; i++){ h = ((h << 5) + h) + str.charCodeAt(i); h = h & h; }
+    return (h >>> 0).toString(36);
+  }
+  // 行オブジェクトから、既読判定に使うフィンガープリントを作る。
+  // 通常セリフ/選択肢: line.text（+choicesがあればその内容）から算出（内容は固定なので毎回同じ結果になる）。
+  // aiChoice: 「候補の抽選結果として実際に選ばれた文字列」を渡してもらい、それを元にする
+  //           （aiChoiceRawChosenが指定された場合はそちらを優先する）。
+  function makeLineFingerprint(line, aiChoiceRawChosen){
+    let basis;
+    if(aiChoiceRawChosen !== undefined){
+      basis = 'ai:' + (line.char || '') + ':' + (line.scene || '') + ':' + aiChoiceRawChosen;
+    } else if(line.choices && !line.aiChoice){
+      basis = 'choice:' + (line.text || '') + '|' + line.choices.map(c => c.text).join('|');
+    } else {
+      basis = 'text:' + (line.name || '') + ':' + (line.text || '');
+    }
+    return simpleHash(basis);
+  }
+  function markLineRead(fingerprint){ readHistory.add(fingerprint); persistReadHistory(); }
+  function isLineRead(fingerprint){ return readHistory.has(fingerprint); }
+  function persistReadHistory(){
+    try{ localStorage.setItem(READ_HISTORY_KEY, JSON.stringify(Array.from(readHistory))); }catch(e){}
+  }
+  function loadReadHistory(){
+    try{
+      const raw = localStorage.getItem(READ_HISTORY_KEY); if(!raw) return;
+      JSON.parse(raw).forEach(k => readHistory.add(k));
+    }catch(e){}
+  }
+
+  // ============================================================
+  // 3. アセット定義（開発者モードで編集可能。localStorageに永続化）
+  // ============================================================
+  const ASSETS_KEY = 'stardustNovel_assets_v1';
+  let backgrounds = { rooftop: "", classroom: "", ending_room: "" };
+  let characters = {
+    mina: { name: "ミナ", img: "" },
+    // variants: [[face:xxx]]タグで指定される表情差分の画像パス表。空文字のうちは通常imgにフォールバックする。
+    akari: { name: "アカリ", img: "", variants: { happy: "", normal: "", shy: "" } },
+    narrator: { name: "", img: "" }
+  };
+  let cgGallery = {
+    cg_rooftop_smile: { label: "屋上の微笑み", img: "", unlocked: false },
+    cg_classroom_seat: { label: "隣の席", img: "", unlocked: false },
+    cg_ending_good: { label: "エンディングCG（Good）", img: "", unlocked: false }
+  };
+  let bgmList = { rooftop_theme: "", classroom_theme: "", ending_theme: "" };
+  let seList = { select: "", type: "", unlock: "", feedback_good: "", feedback_bad: "" };
+
+  function loadAssets(){
+    try{
+      const raw = localStorage.getItem(ASSETS_KEY);
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      if(data.backgrounds) backgrounds = data.backgrounds;
+      if(data.characters) characters = data.characters;
+      if(data.cgGallery){
+        // unlocked状態はGALLERY_KEY側が真実のソースなので上書きしない
+        Object.keys(data.cgGallery).forEach(k => {
+          cgGallery[k] = Object.assign({}, data.cgGallery[k], { unlocked: (cgGallery[k] && cgGallery[k].unlocked) || false });
+        });
+      }
+      if(data.bgmList) bgmList = data.bgmList;
+      if(data.seList) seList = data.seList;
+    }catch(e){}
+    // MAIN_CHAR は物語の中核キャラなので、誤って削除されていた場合は復元する
+    if(!characters[MAIN_CHAR]){
+      characters[MAIN_CHAR] = { name: 'アカリ', img: '' };
+    }
+  }
+  function persistAssets(){
+    try{
+      localStorage.setItem(ASSETS_KEY, JSON.stringify({ backgrounds, characters, cgGallery, bgmList, seList }));
+    }catch(e){}
+  }
+
+  // ============================================================
+  // 4. シナリオデータ（開発者モードで編集可能。localStorageに永続化）
+  // ============================================================
+  const SCENARIO_KEY = 'stardustNovel_scenario_v1';
+  const defaultScript = {
+    start: [
+      {
+        bg: "rooftop", bgm: "rooftop_theme",
+        aiChoice: true, char: "narrator", scene: "rooftop_intro", timeOfDay: "day",
+        choices: [
+          "――放課後の屋上には、いつも風の匂いがした。",
+          "――誰もいない屋上に、彼女の姿だけがあった。",
+          "――放課後、屋上のフェンス越しに、雲が流れていた。"
+        ]
+      },
+      { show: [{ char: "mina", pos: "center" }], name: "ミナ", text: "あ、えっと……星を、見てた。まだ昼間なのに、変だよね。" },
+      { show: [{ char: "akari", pos: "right" }], name: "アカリ", text: "……こんなところで、何してるの。" },
+      { name: "ミナ", text: "でも、たまにここに来ると、少しだけ空が近く感じるんだ。[[mood:normal]]" },
+      {
+        aiChoice: true, char: "akari", scene: "morning_greeting", timeOfDay: "day",
+        choices: [
+          "変わってる。でも――嫌いじゃないよ、そういうの。[[face:happy]]",
+          "……ふうん。趣味悪くない？[[face:normal]]",
+          "私も、ちょっとだけ見てみようかな。[[face:shy]]"
+        ],
+        // variants: タグ集合ごとの追加候補セット。基本choicesとマージされてから抽選される。
+        // まだ出会って間もない(affection_low)・平常時(mood_normal)の時だけ出る、少し素っ気ない反応の例。
+        variants: {
+          "affection_low,mood_normal": [
+            "……知らない人と話すの、あんまり得意じゃないんだけど。[[face:normal]]"
+          ]
+        }
+      },
+      { text: "彼女は少し表情をゆるめた気がした。",
+        choices: [
+          { text: "「ここ、よく来るの？」と聞いてみる", goto: "ask_place", affection: 5 },
+          { text: "「名前、聞いてもいい？」と聞いてみる", goto: "ask_name", affection: 8 },
+          { text: "何も言わず、隣に座る", goto: "sit_silently", affection: 3, mood: "happy" }
+        ]
+      }
+    ],
+    ask_place: [
+      { name: "ミナ", text: "ここ、よく来るの？" },
+      { name: "アカリ", text: "……たまにね。誰もいないから、落ち着くの。[[affection:+2]]" },
+      { text: "cgUnlock", cg: "cg_rooftop_smile", se: "unlock", unlockIf: "affection_mid" },
+      { text: "jump", goto: "join" }
+    ],
+    ask_name: [
+      { name: "ミナ", text: "名前、聞いてもいい？" },
+      { name: "アカリ", text: "……アカリ。それだけ。" },
+      { text: "jump", goto: "join" }
+    ],
+    sit_silently: [
+      { name: "ミナ", text: "……（そっと、隣に腰を下ろす）" },
+      { name: "アカリ", text: "……別に、いいけど。" },
+      { text: "jump", goto: "join" }
+    ],
+    join: [
+      { bg: "classroom", bgm: "classroom_theme", text: "翌日、教室でも彼女を見かけた。" },
+      { show: [{ char: "mina", pos: "left" }, { char: "akari", pos: "right" }], text: "cgUnlock", cg: "cg_classroom_seat", se: "unlock" },
+      {
+        aiChoice: true, char: "akari", scene: "scold", timeOfDay: "day", name: "アカリ",
+        choices: [
+          "……あなたも、ここに座れば？",
+          "遅い。何やってたの。",
+          "また屋上のこと考えてたでしょ。顔でわかる。"
+        ]
+      },
+      { name: "ミナ", text: "うん。ありがとう。" },
+      { text: "こうして、二人だけの日常が始まった。",
+        choices: [ { text: "物語を終える（好感度で結末が変わります）", goto: "resolve_ending" } ]
+      }
+    ],
+    resolve_ending: [ { text: "jump-affection-check", goto: null } ],
+    ending_good: [
+      { bg: "ending_room", bgm: "ending_theme", text: "cgUnlock", cg: "cg_ending_good" },
+      { name: "アカリ", text: "……ねえ、また明日も、ここに来る？[[mood:happy]]" },
+      { name: "ミナ", text: "うん。約束。" },
+      { text: "――Good End：『約束』――" },
+      { text: "end" }
+    ],
+    ending_normal: [
+      { name: "アカリ", text: "……まあ、たまになら、いいよ。" },
+      { name: "ミナ", text: "うん、また来るね。" },
+      { text: "――Normal End：『日常』――" },
+      { text: "end" }
+    ],
+    ending_cool: [
+      { name: "アカリ", text: "……別に、期待してないから。[[mood:tired]]" },
+      { name: "ミナ", text: "（それでも、少しだけ嬉しかった）" },
+      { text: "――Cool End：『距離』――" },
+      { text: "end" }
+    ]
+  };
+  let script = JSON.parse(JSON.stringify(defaultScript));
+  function loadScenario(){
+    try{
+      const raw = localStorage.getItem(SCENARIO_KEY);
+      if(raw) script = JSON.parse(raw);
+    }catch(e){}
+  }
+  function persistScenario(){
+    try{ localStorage.setItem(SCENARIO_KEY, JSON.stringify(script)); }catch(e){}
+  }
+  function pickEndingLabel(affection){
+    if(affection >= 70) return 'ending_good';
+    if(affection >= 30) return 'ending_normal';
+    return 'ending_cool';
+  }
+
+  // ============================================================
+  // 5. 隠しタグパーサー ―― [[key:value]] を文中から検出し適用
+  //    ・シナリオモードでは表示前にタグ文字列を除去してから見せる
+  //    ・開発者モードでは地の文にもタグを可視表示する
+  // ============================================================
+  const HIDDEN_TAG_RE = /\[\[([a-zA-Z_]+):([^\[\]]+)\]\]/g;
+  function extractHiddenTags(rawText){
+    const tags = [];
+    let m;
+    HIDDEN_TAG_RE.lastIndex = 0;
+    while((m = HIDDEN_TAG_RE.exec(rawText)) !== null){
+      tags.push({ key: m[1], value: m[2] });
+    }
+    const cleanText = rawText.replace(HIDDEN_TAG_RE, '').replace(/\s+$/, '');
+    return { cleanText, tags };
+  }
+
+  // ------------------------------------------------------------
+  // 隠しタグ・ハンドラーレジストリ ―― タグの種類と挙動をここに一元管理する。
+  // 新しいタグを追加/変更/削除したいときは、このオブジェクトだけを見れば全体が分かる状態を目指す。
+  //
+  // 各エントリの形:
+  //   {
+  //     kind: 'state' | 'display',
+  //       - 'state'   : hub.coreState や state.flags など、ゲームの状態を書き換える系
+  //       - 'display' : 状態には触れず、呼び出し側（描画コード）が値を読んで使うだけの系（例: face）
+  //     apply(value, charKey): kind==='state' のときだけ呼ばれる副作用関数
+  //     description: 開発者パネル等に出す用の説明文（任意）
+  //   }
+  //
+  // 'state' 系はここに登録するだけでシナリオJSON側から即使えるようになる。
+  // 'display' 系は state を汚さない代わりに、拾って使うかどうかは呼び出し側の責任になる
+  //  （例: aiChoice の face タグは showLine() 側で extractHiddenTags().tags から個別に読んでいる）。
+  // ------------------------------------------------------------
+  const HIDDEN_TAG_HANDLERS = {
+    affection: {
+      kind: 'state',
+      description: '好感度を増減させる（bumpAffection経由。HUD更新も担う）',
+      apply(value, charKey){
+        const delta = parseInt(value, 10);
+        if(!isNaN(delta)) bumpAffection(charKey, delta);
+      }
+    },
+    flag: {
+      kind: 'state',
+      description: 'グローバルフラグ state.flags[value] を true にする',
+      apply(value){
+        state.flags[value] = true;
+      }
+    },
+    face: {
+      kind: 'display',
+      description: 'aiChoice行の選択結果に紐づく表情差分。stateには反映せず、showLine側で個別に読んで表示に使うのみ。'
+    }
+    // tagCategories（mood等）に登録されたキーは resolveTagHandler() が動的に
+    // 'state' ハンドラとして解決するため、ここに個別定義は不要。
+  };
+  // tagCategoriesに登録されている各カテゴリキー（mood含む）を、汎用のstateハンドラとして生成する。
+  // シナリオJSON側だけで新規カテゴリを増やせる（開発者パネルからの追加にも対応するため毎回動的に作る）。
+  function resolveTagHandler(key){
+    if(HIDDEN_TAG_HANDLERS[key]) return HIDDEN_TAG_HANDLERS[key];
+    if(tagCategories[key]){
+      return {
+        kind: 'state',
+        description: 'tagCategories登録済みカテゴリ。キャラのcoreStateに直接セットする。',
+        apply(value, charKey){
+          getHub(charKey).updateCoreState({ [key]: value });
+          if(key === 'mood') updateStatusHud();
+        }
+      };
+    }
+    return null; // 未登録キーは無効なタグとして無視
+  }
+  // targetCharKey: このタグ行が紐づくキャラ（省略時はMAIN_CHAR）。
+  // 実際の挙動は resolveTagHandler() 経由で HIDDEN_TAG_HANDLERS / tagCategories を参照して決まる。
+  // kind==='state' のタグだけここで副作用を適用する。kind==='display' や未登録キーは何もしない
+  // （'display' 系は呼び出し側が extractHiddenTags().tags を直接見て個別に使う）。
+  function applyHiddenTags(tags, targetCharKey){
+    if(!tags || tags.length === 0) return;
+    const charKey = targetCharKey || MAIN_CHAR;
+    tags.forEach(t => {
+      const handler = resolveTagHandler(t.key);
+      if(handler && handler.kind === 'state' && handler.apply) handler.apply(t.value, charKey);
+    });
+  }
+
+  // ============================================================
+  // 6. 設定
+  // ============================================================
+  const OPTIONS_KEY = 'stardustNovel_options_v1';
+  let options = { bgmVolume: 70, bgmOn: true, seVolume: 80, seOn: true, textSpeed: 5, trainingUiOn: true };
+  function loadOptions(){
+    try{ const raw = localStorage.getItem(OPTIONS_KEY); if(raw) options = Object.assign(options, JSON.parse(raw)); }catch(e){}
+  }
+  function persistOptions(){ try{ localStorage.setItem(OPTIONS_KEY, JSON.stringify(options)); }catch(e){} }
+  function applyOptionsToEngine(){
+    SoundEngine.setBgmVolume(options.bgmOn ? options.bgmVolume / 100 : 0);
+    SoundEngine.setSeVolume(options.seOn ? options.seVolume / 100 : 0);
+  }
+  function textSpeedToMs(){ return Math.round(46 - options.textSpeed * 4); }
+
+  // ============================================================
+  // 7. モード管理（シナリオ / エンドレス）
+  // ============================================================
+  const MODE_KEY = 'stardustNovel_gamemode_v1';
+  let gameMode = 'scenario';
+  function loadGameMode(){ try{ gameMode = localStorage.getItem(MODE_KEY) || 'scenario'; }catch(e){ gameMode = 'scenario'; } }
+  function persistGameMode(){ try{ localStorage.setItem(MODE_KEY, gameMode); }catch(e){} }
+  const MAIN_CHAR = 'akari';
+  let endlessSubMode = 'fixed'; // 'fixed' = 同じ状況で何度も調教 / 'cycle' = 通しで進めながら調教
+  let endlessActive = false;
+  let endlessCharKey = MAIN_CHAR;
+  let endlessScenePool = [];   // cycleモードで巡回するシーン名のリスト
+  let endlessSceneIdx = 0;
+  const ENDLESS_LINE_POOL = [
+    "……ねえ、今日は何してたの。",
+    "そばにいると、なんか落ち着く。",
+    "……別に、意味なんてないけど。",
+    "また、その顔してる。",
+    "たまには、ちゃんと話そうよ。"
+  ];
+
+  // ============================================================
+  // 8. エンジン本体
+  // ============================================================
+  const SAVE_KEY = 'stardustNovel_saves_v2';
+  const GALLERY_KEY = 'stardustNovel_gallery_v1';
+  const SLOT_COUNT_KEY = 'stardustNovel_slotcount_v1';
+  let SLOT_COUNT = 6;
+  function loadSlotCount(){ try{ SLOT_COUNT = parseInt(localStorage.getItem(SLOT_COUNT_KEY), 10) || 6; }catch(e){ SLOT_COUNT = 6; } }
+  function persistSlotCount(){ try{ localStorage.setItem(SLOT_COUNT_KEY, String(SLOT_COUNT)); }catch(e){} }
+
+  const el = {};
+  ['titleScreen','btnStart','btnTitleLoad','btnTitleGallery','btnTitleOptions','btnTitleDev','dialogueBox','nameTag','lineText',
+   'continueMark','choiceLayer','bgLayer','bgLayerNext','spriteLeft','spriteCenter','spriteRight','fadeOverlay',
+   'backlogPanel','backlogList','savePanel','savePanelTitle','slotGrid','galleryPanel','galleryGrid',
+   'optionsPanel','btnCloseOptions','optBgmVol','optBgmVolVal','optBgmToggle','optSeVol','optSeVolVal','optSeToggle',
+   'optTextSpeed','optTextSpeedVal','optTrainToggle',
+   'btnSave','btnLoad','btnLog','btnCloseLog','btnCloseSave','btnCloseGallery','btnGallery','btnOptions',
+   'btnAuto','btnSkip','btnTitle','toast','statusHud','feedbackBar','fbGood','fbBad','game','hiddenHint',
+   'devBadge','btnDevPanel','devPanel','btnDevClose','btnDevDisable','scenarioEditor','btnScenarioApply','btnScenarioFormat',
+   'btnScenarioAddLabel','btnScenarioAddChoiceLine','scenarioStatus','devCharList','btnAddChar','devBgList','btnAddBg',
+   'devBgmList','btnAddBgm','devSeList','btnAddSe','devCgList','btnAddCg','devSlotCount','btnApplySlotCount',
+   'btnWipeAll','tagTestInput','btnTagTest','tagTestResult','modeCardScenario','modeCardEndless','endlessControls',
+   'endlessCharSelect','btnEndlessStart','btnEndlessStop','endlessSubCardFixed','endlessSubCardCycle','slotCountCtrl','slotCountVal',
+   'slotCountMinus','slotCountPlus','devTagCategoryList','btnAddTagCategory',
+   'scoreCharSelect','scoreSceneSelect','scoreTableWrap','scoreNewTags','scoreNewChoice','scoreNewScore','btnScoreAdd','scoreStatus',
+   'guiLabelList','btnGuiAddLabel','guiCurrentLabelName','btnGuiAddRow','guiRowTableBody','guiScenarioStatus',
+   'guiSubEditorOverlay','guiSubEditorTitle','guiSubEditorBody','btnGuiSubEditorClose'
+  ].forEach(id => { el[id] = document.getElementById(id); });
+  const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
+
+  let state = {
+    label: 'start', index: 0, typing: false, auto: false, skip: false,
+    backlog: [], bgKey: null, onStage: {}, pendingFeedback: null,
+    uiHidden: false, flags: {},
+    // 現在タイプ中/表示中の「タグ除去済み」テキストとタグ一覧。
+    // advance()での連打確定時に、生のtext（隠しタグ込み）を誤って表示しないよう、ここに保持したクリーン版を使う。
+    currentCleanText: '', currentTags: [], currentHasSpeaker: false, currentFingerprint: null
+  };
+  let typeTimer = null;
+  let autoTimer = null;
+  let saveMode = false;
+
+  function ensureCoreScenes(){
+    getHub(MAIN_CHAR).registerScene('morning_greeting', 3);
+    getHub(MAIN_CHAR).registerScene('scold', 3);
+  }
+  function currentLines(){ return script[state.label] || []; }
+
+  // ---------- gallery ----------
+  function loadGalleryUnlocks(){
+    try{
+      const raw = localStorage.getItem(GALLERY_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      Object.keys(data).forEach(k => { if(cgGallery[k]) cgGallery[k].unlocked = !!data[k]; });
+    }catch(e){}
+  }
+  function persistGalleryUnlocks(){
+    try{
+      const out = {}; Object.keys(cgGallery).forEach(k => { out[k] = cgGallery[k].unlocked; });
+      localStorage.setItem(GALLERY_KEY, JSON.stringify(out));
+    }catch(e){}
+  }
+  // unlockIfで指定されたタグ条件を満たしているか判定する。
+  // 判定対象のタグは buildState() が生成するもの（tagCategories登録済みの全カテゴリ + extraTags）を再利用するので、
+  // タグの種類が増えてもここを直す必要はない。
+  //   unlockIf: "affection_high"                 → 単一タグ（文字列）
+  //   unlockIf: ["affection_high", "mood_happy"]  → 複数タグをAND条件で判定（配列）
+  //   line.char を対象キャラとして使う（省略時はMAIN_CHAR）。extraTagsも併用可能。
+  function checkUnlockCondition(line){
+    if(!line.unlockIf) return true; // 条件未指定なら従来通り無条件アンロック
+    const charKey = line.char || MAIN_CHAR;
+    const hub = getHub(charKey);
+    const tags = buildState({ timeOfDay: line.timeOfDay || 'day', coreState: hub.coreState, extraTags: line.extraTags });
+    const required = Array.isArray(line.unlockIf) ? line.unlockIf : [line.unlockIf];
+    return required.every(req => tags.indexOf(req) !== -1);
+  }
+  function unlockCg(key){
+    if(!cgGallery[key] || cgGallery[key].unlocked) return;
+    cgGallery[key].unlocked = true;
+    persistGalleryUnlocks();
+    showToast('CGを解放しました');
+  }
+  // variantsのタグ集合キー文字列を正規化する（順序・空白・重複タグの表記ゆれを吸収する）。
+  // 例: "mood_normal, affection_low" と "affection_low,mood_normal" は同じ正規化結果になる。
+  function normalizeTagComboKey(rawKey){
+    const tags = rawKey.split(',').map(s => s.trim()).filter(Boolean);
+    return Array.from(new Set(tags)).sort().join(',');
+  }
+  // aiChoice行の候補セリフを組み立てる。
+  //   line.choices  : 常に候補に含まれる基本セット（従来通り）
+  //   line.variants : { "タグ集合(カンマ区切り)": [追加候補, ...], ... }
+  //     現在の状況タグ（buildState()の結果）が、そのキーのタグを「全て」含んでいる場合だけ
+  //     （checkUnlockConditionのunlockIfと同じAND方式）、対応する追加候補をchoicesにマージする。
+  //     これにより、タグの組み合わせが増えても [[face:xxx]] 等を1候補ずつ書かずに、
+  //     状況ごとの候補セットをまとめて記述できる。
+  //   複数のタグ集合が同時にマッチした場合は、それぞれの追加候補が全て合流してマージされる
+  //   （意図的な仕様。粒度の違うタグ集合を併用できる）。
+  //   ただし「表記ゆれで別キーになっているだけの、意味的に同じタグ集合」は事故なので、
+  //   正規化キーが衝突していたら開発者モードでコンソールに警告する。
+  // 戻り値は候補の重複を除いた1つの文字列配列。DialogueMemorySystem側の型・キー生成には一切変更がない
+  // （マージ後の配列がそのまま従来通りの choices として渡されるだけ）。
+  function resolveAiChoiceCandidates(line, hub){
+    const base = line.choices || [];
+    if(!line.variants) return base;
+    const tags = buildState({ timeOfDay: line.timeOfDay || 'day', coreState: hub.coreState, extraTags: line.extraTags });
+    const merged = base.slice();
+    const seenNormalizedKeys = {}; // normalizedKey -> 元のキー（重複検出用）
+    Object.keys(line.variants).forEach(tagComboKey => {
+      const normalized = normalizeTagComboKey(tagComboKey);
+      if(IS_DEV){
+        if(seenNormalizedKeys[normalized] && seenNormalizedKeys[normalized] !== tagComboKey){
+          console.warn(
+            '[aiChoice variants] 表記ゆれによる重複タグ集合を検出しました: "' +
+            seenNormalizedKeys[normalized] + '" と "' + tagComboKey + '" は同じ意味のタグ集合です（scene: ' + line.scene + '）。' +
+            'どちらか一方に統一することを推奨します。'
+          );
+        }
+        seenNormalizedKeys[normalized] = tagComboKey;
+      }
+      const required = normalized.split(',').filter(Boolean);
+      const matches = required.length > 0 && required.every(req => tags.indexOf(req) !== -1);
+      if(matches){
+        (line.variants[tagComboKey] || []).forEach(choice => {
+          if(merged.indexOf(choice) === -1) merged.push(choice);
+        });
+      }
+    });
+    return merged;
+  }
+  function renderGallery(){
+    el.galleryGrid.innerHTML = '';
+    Object.keys(cgGallery).forEach(key => {
+      const def = cgGallery[key];
+      const cell = document.createElement('div');
+      cell.className = 'gallery-cell' + (def.unlocked ? '' : ' locked');
+      if(def.unlocked && def.img) cell.style.backgroundImage = "url('" + def.img + "')";
+      const span = document.createElement('span');
+      span.textContent = def.unlocked ? def.label : '未解放';
+      cell.appendChild(span);
+      el.galleryGrid.appendChild(cell);
+    });
+  }
+
+  // ---------- save/load ----------
+  function hasAnySave(){ return Object.keys(loadAllSaves()).length > 0; }
+  function loadAllSaves(){
+    try{ const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : {}; }catch(e){ return {}; }
+  }
+  function writeAllSaves(data){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(data)); }catch(e){} }
+  function firstLineOfCurrent(){
+    const lines = currentLines();
+    const line = lines[state.index];
+    if(!line || !line.text) return '';
+    return extractHiddenTags(line.text).cleanText.slice(0, 26);
+  }
+  function saveToSlot(slotId){
+    const all = loadAllSaves();
+    all[slotId] = {
+      label: state.label, index: state.index, bgKey: state.bgKey, onStage: state.onStage,
+      backlog: state.backlog, flags: state.flags,
+      preview: firstLineOfCurrent(),
+      thumb: state.bgKey && backgrounds[state.bgKey] ? backgrounds[state.bgKey] : '',
+      time: new Date().toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})
+    };
+    writeAllSaves(all);
+    persistAllHubs(); // 好感度・mood等の真実源はここでhubsごと永続化される
+    showToast('セーブしました');
+    renderSlotGrid();
+    updateTitleContinueButton();
+  }
+  function loadFromSlot(slotId){
+    const all = loadAllSaves();
+    const data = all[slotId];
+    if(!data) return;
+    el.titleScreen.classList.add('hidden');
+    el.savePanel.classList.add('hidden');
+    state.label = data.label; state.index = data.index; state.bgKey = data.bgKey;
+    state.onStage = data.onStage || {}; state.backlog = data.backlog || [];
+    state.flags = data.flags || {};
+    // 好感度はloadAllHubs()（起動時）で読み込まれるhubs側が真実源。旧セーブのdata.affectionは使わない。
+    applyBackground(state.bgKey, true);
+    Object.keys(spriteSlots).forEach(pos => clearSpriteInstant(pos));
+    Object.keys(state.onStage).forEach(pos => renderSprite(pos, state.onStage[pos], true));
+    updateStatusHud();
+    showLine();
+    showToast('ロードしました');
+  }
+  function deleteSlot(slotId){
+    const all = loadAllSaves(); delete all[slotId]; writeAllSaves(all);
+    renderSlotGrid(); showToast('削除しました'); updateTitleContinueButton();
+  }
+  function updateTitleContinueButton(){ el.btnTitleLoad.disabled = !hasAnySave(); }
+  function showToast(msg){
+    el.toast.textContent = msg; el.toast.classList.add('show');
+    setTimeout(() => el.toast.classList.remove('show'), 1400);
+  }
+  function openSavePanel(mode){
+    saveMode = mode === 'save';
+    el.savePanelTitle.childNodes[0].textContent = (saveMode ? 'セーブ' : 'ロード') + ' ';
+    renderSlotGrid();
+    el.savePanel.classList.remove('hidden');
+  }
+  function renderSlotGrid(){
+    const all = loadAllSaves();
+    el.slotGrid.innerHTML = '';
+    for(let i = 1; i <= SLOT_COUNT; i++){
+      const slotId = 'slot' + i;
+      const data = all[slotId];
+      const card = document.createElement('div');
+      card.className = 'save-slot' + (data ? '' : ' empty');
+      if(!data){
+        card.textContent = saveMode ? ('スロット ' + i + '（空）') : '― データなし ―';
+        if(saveMode) card.addEventListener('click', () => saveToSlot(slotId));
+        el.slotGrid.appendChild(card);
+        continue;
+      }
+      const thumb = document.createElement('div');
+      thumb.className = 'slot-thumb';
+      if(data.thumb) thumb.style.backgroundImage = "url('" + data.thumb + "')";
+      card.appendChild(thumb);
+      const meta = document.createElement('div');
+      meta.className = 'slot-meta';
+      meta.innerHTML = '<b>スロット ' + i + '</b>' + (data.time || '') + '<br>' + (data.preview || '');
+      card.appendChild(meta);
+      const actions = document.createElement('div');
+      actions.className = 'slot-actions';
+      const mainBtn = document.createElement('button');
+      mainBtn.textContent = saveMode ? '上書き' : '読込';
+      mainBtn.addEventListener('click', (e) => { e.stopPropagation(); saveMode ? saveToSlot(slotId) : loadFromSlot(slotId); });
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteSlot(slotId); });
+      actions.appendChild(mainBtn); actions.appendChild(delBtn);
+      card.appendChild(actions);
+      el.slotGrid.appendChild(card);
+    }
+  }
+
+  // ---------- background / sprites ----------
+  function applyBackground(key, instant){
+    state.bgKey = key || null;
+    const url = key && backgrounds[key] ? backgrounds[key] : '';
+    if(!url){ el.bgLayer.classList.remove('has-image'); el.bgLayer.style.backgroundImage = ''; return; }
+    if(instant){ el.bgLayer.style.backgroundImage = "url('" + url + "')"; el.bgLayer.classList.add('has-image'); return; }
+    el.bgLayerNext.style.backgroundImage = "url('" + url + "')";
+    el.bgLayerNext.style.opacity = '1';
+    setTimeout(() => {
+      el.bgLayer.style.backgroundImage = "url('" + url + "')";
+      el.bgLayer.classList.add('has-image');
+      el.bgLayerNext.style.opacity = '0';
+    }, 480);
+  }
+  function clearSpriteInstant(pos){
+    const node = spriteSlots[pos]; if(!node) return;
+    node.classList.remove('show'); node.innerHTML = '';
+    delete state.onStage[pos];
+  }
+  function clearSprite(pos){
+    const node = spriteSlots[pos]; if(!node) return;
+    node.classList.remove('show');
+    setTimeout(() => { node.innerHTML = ''; }, 450);
+    delete state.onStage[pos];
+  }
+  function renderSprite(pos, charKey, instant, face){
+    const node = spriteSlots[pos]; const def = characters[charKey];
+    if(!node || !def) return;
+    state.onStage[pos] = charKey;
+    node.innerHTML = '';
+    // face指定があり、かつそのキャラにvariants[face]の差分画像が登録されていればそれを使う。
+    // 無ければ通常のdef.imgにフォールバック（後方互換）。
+    const src = (face && def.variants && def.variants[face]) ? def.variants[face] : def.img;
+    if(src){
+      const img = document.createElement('img'); img.src = src; img.alt = def.name;
+      node.appendChild(img);
+    } else {
+      const fb = document.createElement('div'); fb.className = 'sprite-fallback'; fb.textContent = def.name;
+      node.appendChild(fb);
+    }
+    if(instant) node.classList.add('show');
+    else requestAnimationFrame(() => node.classList.add('show'));
+  }
+  // charKeyが現在どのposに立っているかを逆引きする（aiChoiceの表情差分適用に使用）
+  function findStagePos(charKey){
+    return Object.keys(state.onStage).find(pos => state.onStage[pos] === charKey) || null;
+  }
+  function applyStageDirections(line){
+    if(line.bg) applyBackground(line.bg, false);
+    if(line.bgm && bgmList[line.bgm]) SoundEngine.playBgm(bgmList[line.bgm]);
+    if(line.se && seList[line.se]) SoundEngine.playSe(seList[line.se]);
+    if(line.hide) line.hide.forEach(pos => clearSprite(pos));
+    if(line.show) line.show.forEach(s => renderSprite(s.pos, s.char, false));
+  }
+
+  // ---------- affection HUD (dev only) ----------
+  // 好感度の単一の真実源(source of truth)は hub.coreState.affection のみ。
+  // 以前は state.affection[charKey] にも同じ値を複製して持っていたが、二重管理になっていたため廃止。
+  // セーブ/ロードやHUD表示など「好感度を読みたい」箇所は全て getAffection(charKey) 経由で hub から読む。
+  function getAffection(charKey){ return getHub(charKey).coreState.affection; }
+  function bumpAffection(charKey, delta, mood){
+    const hub = getHub(charKey);
+    const current = (hub.coreState.affection === undefined) ? 20 : hub.coreState.affection;
+    const next = Math.max(0, Math.min(100, current + (delta || 0)));
+    hub.updateCoreState({ affection: next, mood: mood || hub.coreState.mood });
+    updateStatusHud();
+  }
+  function updateStatusHud(){
+    if(!IS_DEV){ el.statusHud.classList.remove('show'); el.statusHud.innerHTML = ''; return; }
+    el.statusHud.innerHTML = '';
+    // HUDに表示するキャラ一覧は「これまでhubが作られた（＝一度でも登場・会話した）キャラ」から取る。
+    const keys = Object.keys(hubs);
+    if(keys.length === 0){ el.statusHud.classList.remove('show'); return; }
+    keys.forEach(charKey => {
+      const def = characters[charKey]; if(!def) return;
+      const val = getAffection(charKey);
+      const hub = getHub(charKey);
+      const row = document.createElement('div');
+      row.className = 'status-row';
+      row.innerHTML =
+        '<span class="status-name">' + def.name + '</span>' +
+        '<span class="status-bar-track"><span class="status-bar-fill" style="width:' + val + '%"></span></span>' +
+        '<span class="status-mood-tag">' + hub.coreState.mood + '</span>';
+      el.statusHud.appendChild(row);
+    });
+    el.statusHud.classList.add('show');
+  }
+
+  // ---------- dialogue flow ----------
+  function showLine(){
+    const lines = currentLines();
+    const line = lines[state.index];
+    if(!line){ return; }
+
+    hideFeedbackBar();
+
+    if(line.text === 'jump' && line.goto){ state.label = line.goto; state.index = 0; showLine(); return; }
+    if(line.text === 'jump-affection-check'){
+      const target = pickEndingLabel(getAffection(MAIN_CHAR) || 0);
+      state.label = target; state.index = 0; showLine(); return;
+    }
+    if(line.text === 'cgUnlock'){
+      applyStageDirections(line);
+      if(line.cg && checkUnlockCondition(line)) unlockCg(line.cg);
+      state.index++;
+      if(state.index >= lines.length){ showTitle(); return; }
+      showLine();
+      return;
+    }
+    if(line.text === 'end'){ showTitle(); return; }
+
+    el.choiceLayer.classList.add('hidden');
+    el.choiceLayer.innerHTML = '';
+
+    applyStageDirections(line);
+
+    // --- AI駆動セリフ（aiChoice） ---
+    if(line.aiChoice){
+      const hub = getHub(line.char);
+      const effectiveChoices = resolveAiChoiceCandidates(line, hub);
+      const result = hub.decide(line.scene, line.timeOfDay || 'day', effectiveChoices, line.extraTags);
+      const displayName = line.name || (characters[line.char] ? characters[line.char].name : '');
+      // 選ばれたセリフ文字列に埋め込まれた [[face:xxx]] タグを読み、表情差分だけ反映する。
+      // face は HIDDEN_TAG_HANDLERS で kind:'display' と定義されているため applyHiddenTags では無視される。
+      // choices配列やスコアリング用のキー生成には一切影響しない（学習は生文字列のまま行われる）。
+      const faceTags = extractHiddenTags(result.chosen).tags.filter(t => t.key === 'face');
+      if(faceTags.length){
+        const pos = findStagePos(line.char);
+        if(pos) renderSprite(pos, line.char, false, faceTags[faceTags.length - 1].value);
+      }
+      renderLineText(result.chosen, displayName, true, line.char);
+      state.backlog.push({ name: displayName, text: extractHiddenTags(result.chosen).cleanText });
+
+      // 既読管理: 「抽選で実際に選ばれた結果」を内容ベースのフィンガープリントにする。
+      const fp = makeLineFingerprint(line, result.chosen);
+      const wasRead = isLineRead(fp);
+      state.currentFingerprint = fp;
+      markLineRead(fp);
+      // 既読の行でもフィードバック待ちにしてしまうと、スキップ中に毎回足止めされて意味がなくなる。
+      // そのため「まだ見たことがない」時だけフィードバックを求める。
+      if(!wasRead){
+        state.pendingFeedback = { charKey: line.char, sceneName: line.scene, currentState: result.state, choice: result.chosen };
+      } else {
+        state.pendingFeedback = null;
+      }
+      maybeAutoAdvanceIfRead(wasRead);
+      return;
+    }
+
+    const displayName = line.name ? line.name.trim() : '';
+    renderLineText(line.text, displayName, false, line.char || MAIN_CHAR);
+    const clean = extractHiddenTags(line.text).cleanText;
+    state.backlog.push({ name: displayName, text: clean });
+
+    // 既読管理: 通常セリフ・選択肢は行の内容が常に固定なので、行そのものからフィンガープリントを作る。
+    const fp = makeLineFingerprint(line);
+    const wasRead = isLineRead(fp);
+    state.currentFingerprint = fp;
+    markLineRead(fp);
+    maybeAutoAdvanceIfRead(wasRead);
+  }
+
+  // 「スキップ」= オートの高速版。既読の行は待ち時間なしで即座に流し、未読の行は普通に表示して止まる。
+  // 選択肢待ちの行（line.choices && !line.aiChoice）は、advance()側で自動送りが止まる仕組みに乗るため、ここでは何もしない。
+  function maybeAutoAdvanceIfRead(wasRead){
+    if(!state.skip) return;
+    if(!wasRead) return; // 未読なら通常表示のまま止まる（スキップは既読のみをすっ飛ばす）
+    // タイプ表示自体は一瞬で終わらせ、直後に自動で次へ進める。
+    // pendingFeedbackは showLine 側で既に null にしている（既読時）ので、ここでは進行を妨げない。
+    clearTimeout(typeTimer);
+    state.typing = false;
+    el.lineText.textContent = state.currentCleanText;
+    el.continueMark.classList.remove('hidden');
+    // 選択肢待ちの行では advance() 自体が何もしないため、プレイヤー操作を待つ（自動送りしない）。
+    const lines = currentLines();
+    const line = lines[state.index];
+    if(line && line.choices && !line.aiChoice) return;
+    setTimeout(advance, 30); // 一瞬の間だけ置いて連続送りが見えるようにする
+  }
+
+  // 通常テキストとAI駆動テキストの両方を通す共通描画関数。
+  // 隠しタグを検出→エンジンに適用→表示用テキストを確定（devモードではタグを可視化）
+  // targetCharKey: 隠しタグ([[key:value]])の効果を誰のcoreStateに適用するか。
+  //                通常セリフ行は line.char があればそれを、なければ MAIN_CHAR にフォールバックする。
+  function renderLineText(rawText, displayName, isAiLine, targetCharKey){
+    const { cleanText, tags } = extractHiddenTags(rawText);
+    applyHiddenTags(tags, targetCharKey || MAIN_CHAR);
+
+    if(displayName){ el.nameTag.textContent = displayName; el.nameTag.classList.remove('hidden'); }
+    else { el.nameTag.classList.add('hidden'); }
+
+    // advance()での連打確定用に、タグ除去済みの表示テキストを保持しておく
+    state.currentCleanText = cleanText;
+    state.currentTags = tags;
+    state.currentHasSpeaker = !!displayName;
+
+    typeText(cleanText, tags, isAiLine, !!displayName);
+  }
+
+  function typeText(full, tags, isAiLine, hasSpeaker){
+    clearTimeout(typeTimer);
+    el.lineText.innerHTML = '';
+    el.continueMark.classList.add('hidden');
+    state.typing = true;
+    let i = 0;
+    const speed = state.skip ? 2 : textSpeedToMs();
+    function step(){
+      if(!state.typing) return;
+      el.lineText.textContent = full.slice(0, i);
+      if(full[i-1] && full[i-1] !== ' ' && full[i-1] !== '　' && options.seOn && seList.type && i % 2 === 0){
+        SoundEngine.playSe(seList.type);
+      }
+      i++;
+      if(i <= full.length) typeTimer = setTimeout(step, speed);
+      else finishTyping(full, tags, isAiLine, hasSpeaker);
+    }
+    step();
+  }
+
+  function finishTyping(full, tags, isAiLine, hasSpeaker){
+    state.typing = false;
+    el.lineText.innerHTML = '';
+    el.lineText.appendChild(document.createTextNode(full));
+
+    // 開発者モード: 地の文・セリフ問わず隠しタグを可視表示
+    if(IS_DEV && tags && tags.length){
+      tags.forEach(t => {
+        const span = document.createElement('span');
+        span.className = 'dev-tag-inline';
+        span.textContent = '[[' + t.key + ':' + t.value + ']]';
+        el.lineText.appendChild(span);
+      });
+    }
+
+    const lines = currentLines();
+    const line = lines[state.index];
+
+    if(line && line.choices && !line.aiChoice){
+      renderChoices(line.choices);
+      return;
+    }
+
+    // 調教UI表示判定:
+    //  - options.trainingUiOn が true の時だけ表示（開発者モードかどうかは無関係。
+    //    設定画面のトグルで、開発者モード中でも調教UIを隠せる）
+    if(state.pendingFeedback){
+      if(options.trainingUiOn){
+        showFeedbackBar();
+      } else {
+        // 調教UIを出さない設定 -> フィードバックせず自動で進める前提として保留をクリア
+        state.pendingFeedback = null;
+      }
+    }
+    el.continueMark.classList.remove('hidden');
+    if(state.auto){
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(advance, 1100);
+    }
+  }
+
+  function renderChoices(choices){
+    el.choiceLayer.innerHTML = '';
+    choices.forEach(c => {
+      // 選択肢の text にも [[flag:xxx]] 等の隠しタグを埋め込めるようにする。
+      // affection/mood は既存通り専用フィールド（c.affection, c.mood）で確定効果として扱い、
+      // 隠しタグはそれとは別に「任意で足せる追加効果」として共存する（flag, 将来の新カテゴリ等）。
+      const { cleanText, tags } = extractHiddenTags(c.text);
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = cleanText;
+      if(IS_DEV && tags.length){
+        // 開発者モードでは、他の行と同様にタグの存在をボタン内に可視化する
+        btn.textContent += ' ' + tags.map(t => '[[' + t.key + ':' + t.value + ']]').join('');
+      }
+      btn.addEventListener('click', () => {
+        if(options.seOn && seList.select) SoundEngine.playSe(seList.select);
+        fadeThen(() => {
+          if(c.affection){ bumpAffection(MAIN_CHAR, c.affection, c.mood); }
+          else if(c.mood){ bumpAffection(MAIN_CHAR, 0, c.mood); }
+          applyHiddenTags(tags, MAIN_CHAR); // 隠しタグの副作用（flag等）はaffection/moodの確定効果とは別に常に適用する
+          state.label = c.goto; state.index = 0; showLine();
+        });
+      });
+      el.choiceLayer.appendChild(btn);
+    });
+    el.choiceLayer.classList.remove('hidden');
+  }
+
+  // ---------- feedback (training) ----------
+  function showFeedbackBar(){ el.feedbackBar.classList.add('show'); }
+  function hideFeedbackBar(){ el.feedbackBar.classList.remove('show'); }
+  function submitFeedback(isGood){
+    const pending = state.pendingFeedback;
+    if(!pending){ hideFeedbackBar(); return; }
+    const hub = getHub(pending.charKey);
+    // 調教フィードバックは「その状況・状態にその応答がふさわしかったか」の評価であり、
+    // プレイヤーとキャラの関係性（好感度）とは別のシステム。ここでは学習データのみ更新する。
+    hub.giveFeedback(pending.sceneName, pending.currentState, pending.choice, isGood, 1);
+    persistAllHubs();
+    if(options.seOn) SoundEngine.playSe(isGood ? seList.feedback_good : seList.feedback_bad);
+    showToast(isGood ? '評価を記録した：良い' : '評価を記録した：微妙');
+    state.pendingFeedback = null;
+    hideFeedbackBar();
+  }
+
+  function fadeThen(cb){
+    el.fadeOverlay.classList.add('on');
+    setTimeout(() => { cb(); setTimeout(() => el.fadeOverlay.classList.remove('on'), 30); }, 320);
+  }
+
+  function anyOverlayOpen(){
+    return !el.backlogPanel.classList.contains('hidden') ||
+           !el.savePanel.classList.contains('hidden') ||
+           !el.galleryPanel.classList.contains('hidden') ||
+           !el.optionsPanel.classList.contains('hidden') ||
+           !el.devPanel.classList.contains('hidden');
+  }
+
+  function advance(){
+    if(!el.titleScreen.classList.contains('hidden')) return;
+    if(!el.choiceLayer.classList.contains('hidden')) return;
+    if(anyOverlayOpen()) return;
+    if(state.uiHidden) return;
+
+    if(gameMode === 'endless'){
+      if(!endlessActive) return;
+      if(state.typing){
+        state.typing = false;
+        finishTyping(state.currentCleanText, state.currentTags, true, state.currentHasSpeaker);
+        return;
+      }
+      if(state.pendingFeedback){ return; } // フィードバック待ちは進めない(OFF設定時はここに来ない)
+      endlessAdvance();
+      return;
+    }
+
+    if(state.typing){
+      state.typing = false;
+      finishTyping(state.currentCleanText, state.currentTags, false, state.currentHasSpeaker);
+      return;
+    }
+    const lines = currentLines();
+    const line = lines[state.index];
+    if(line && line.choices && !line.aiChoice){ return; }
+    if(state.pendingFeedback){ return; } // フィードバック待ちは進めない(OFF設定時はここに来ない)
+
+    state.index++;
+    if(state.index >= lines.length){ showTitle(); return; }
+    showLine();
+  }
+
+  function resetStage(){
+    Object.keys(spriteSlots).forEach(pos => { spriteSlots[pos].classList.remove('show'); spriteSlots[pos].innerHTML=''; });
+    state.onStage = {};
+    el.bgLayer.classList.remove('has-image'); el.bgLayer.style.backgroundImage = '';
+    state.bgKey = null;
+  }
+  function showTitle(){
+    stopEndlessMode();
+    el.titleScreen.classList.remove('hidden');
+    clearTimeout(autoTimer);
+    hideFeedbackBar();
+    updateTitleContinueButton();
+  }
+  function startGame(){
+    try{
+      SoundEngine.unlock();
+      if(gameMode === 'endless'){ startEndlessMode(); return; }
+      resetStage();
+      el.titleScreen.classList.add('hidden');
+      state.label = 'start'; state.index = 0; state.backlog = []; state.flags = {};
+      updateStatusHud();
+      showLine();
+    }catch(err){
+      console.error('startGame failed, falling back to safe defaults:', err);
+      // 壊れたシナリオ/アセットデータが原因の可能性が高いので、
+      // 該当データだけを初期状態に戻してもう一度だけ試みる
+      try{
+        script = JSON.parse(JSON.stringify(defaultScript));
+        localStorage.removeItem(SCENARIO_KEY);
+        el.titleScreen.classList.add('hidden');
+        state.label = 'start'; state.index = 0; state.backlog = []; state.flags = {};
+        getHub(MAIN_CHAR).updateCoreState({ affection: 20 }); // hub側の好感度を安全な初期値に戻す
+        updateStatusHud();
+        showLine();
+        showToast('データ破損を検知し、シナリオを初期状態に戻しました');
+      }catch(err2){
+        console.error('復旧にも失敗しました:', err2);
+        alert('ゲームの開始に失敗しました。開発者パネルの「セーブ設定」→「全セーブ/学習データを消去」をお試しください。');
+      }
+    }
+  }
+
+  // ============================================================
+  // エンドレスモード（開発者向け・クリック/タップ送り駆動）
+  //   ・「固定」: 同じ状況(state)・同じ選択肢セットのまま何度も再抽選させ、
+  //     同一状況への重み付けをはっきり体感しながら調教できる。
+  //   ・「周回」: 登録済みシーンを順番に巡りながら進行する、
+  //     通しプレイに近い形で調教できる。
+  //   どちらもテキスト送り(クリック/タップ、AUTO)で進行し、
+  //   フィードバック待ちの間は先に進めない。
+  // ============================================================
+  function startEndlessMode(){
+    resetStage();
+    el.titleScreen.classList.add('hidden');
+    endlessCharKey = (el.endlessCharSelect && el.endlessCharSelect.value) ? el.endlessCharSelect.value : MAIN_CHAR;
+    updateStatusHud();
+
+    if(endlessSubMode === 'cycle'){
+      // 周回モード: そのキャラに登録済みのシーンを順に巡回するリストを作る
+      const scenes = Object.keys(getHub(endlessCharKey).scenes);
+      endlessScenePool = scenes.length ? scenes : ['endless_default'];
+      if(!getHub(endlessCharKey).scenes[endlessScenePool[0]]) getHub(endlessCharKey).registerScene(endlessScenePool[0], 3);
+      endlessSceneIdx = 0;
+    } else {
+      // 固定モード: 単一シーンに固定
+      endlessScenePool = ['endless_fixed'];
+      getHub(endlessCharKey).registerScene('endless_fixed', 4);
+      endlessSceneIdx = 0;
+    }
+
+    endlessActive = true;
+    endlessEmitLine();
+  }
+  function stopEndlessMode(){
+    endlessActive = false;
+  }
+  function endlessEmitLine(){
+    const sceneName = endlessScenePool[endlessSceneIdx % endlessScenePool.length];
+    const hub = getHub(endlessCharKey);
+    hub.registerScene(sceneName, 4);
+    const result = hub.decide(sceneName, 'day', ENDLESS_LINE_POOL);
+    const displayName = characters[endlessCharKey] ? characters[endlessCharKey].name : endlessCharKey;
+    renderLineText(result.chosen, displayName, true, endlessCharKey);
+    state.backlog.push({ name: displayName, text: extractHiddenTags(result.chosen).cleanText });
+    state.pendingFeedback = { charKey: endlessCharKey, sceneName, currentState: result.state, choice: result.chosen };
+  }
+  // クリック/タップ、またはAUTOから呼ばれる、エンドレスモードの「送り」
+  function endlessAdvance(){
+    if(endlessSubMode === 'cycle'){
+      endlessSceneIdx++; // 周回モードは送るたびに次のシーンへ
+    }
+    // 固定モードは常に同じ sceneIdx (=同じ状況) のまま再抽選される
+    endlessEmitLine();
+  }
+
+  // ---------- UI hide (two-finger tap) ----------
+  function setUiHidden(hidden){
+    state.uiHidden = hidden;
+    el.game.classList.toggle('ui-hidden', hidden);
+  }
+
+  // ---------- options panel wiring ----------
+  function syncOptionsUi(){
+    el.optBgmVol.value = options.bgmVolume; el.optBgmVolVal.textContent = options.bgmVolume;
+    el.optBgmToggle.textContent = options.bgmOn ? 'ON' : 'OFF'; el.optBgmToggle.classList.toggle('on', options.bgmOn);
+    el.optSeVol.value = options.seVolume; el.optSeVolVal.textContent = options.seVolume;
+    el.optSeToggle.textContent = options.seOn ? 'ON' : 'OFF'; el.optSeToggle.classList.toggle('on', options.seOn);
+    el.optTextSpeed.value = options.textSpeed; el.optTextSpeedVal.textContent = options.textSpeed;
+    el.optTrainToggle.textContent = options.trainingUiOn ? 'ON' : 'OFF'; el.optTrainToggle.classList.toggle('on', options.trainingUiOn);
+  }
+  function openOptions(){ syncOptionsUi(); el.optionsPanel.classList.remove('hidden'); }
+
+  el.optBgmVol.addEventListener('input', () => { options.bgmVolume = parseInt(el.optBgmVol.value,10); el.optBgmVolVal.textContent = options.bgmVolume; applyOptionsToEngine(); persistOptions(); });
+  el.optBgmToggle.addEventListener('click', () => { options.bgmOn = !options.bgmOn; syncOptionsUi(); applyOptionsToEngine(); persistOptions(); });
+  el.optSeVol.addEventListener('input', () => { options.seVolume = parseInt(el.optSeVol.value,10); el.optSeVolVal.textContent = options.seVolume; applyOptionsToEngine(); persistOptions(); });
+  el.optSeToggle.addEventListener('click', () => { options.seOn = !options.seOn; syncOptionsUi(); applyOptionsToEngine(); persistOptions(); });
+  el.optTextSpeed.addEventListener('input', () => { options.textSpeed = parseInt(el.optTextSpeed.value,10); el.optTextSpeedVal.textContent = options.textSpeed; persistOptions(); });
+  el.optTrainToggle.addEventListener('click', () => { options.trainingUiOn = !options.trainingUiOn; syncOptionsUi(); persistOptions(); });
+  el.btnCloseOptions.addEventListener('click', () => el.optionsPanel.classList.add('hidden'));
+  el.btnOptions.addEventListener('click', openOptions);
+  el.btnTitleOptions.addEventListener('click', openOptions);
+
+  // ============================================================
+  // 9. 開発者パネル配線
+  // ============================================================
+  function initDevUiVisibility(){
+    if(!IS_DEV) return;
+    el.game.classList.add('dev-mode');
+    el.devBadge.classList.remove('hidden');
+    el.btnDevPanel.classList.remove('hidden');
+    el.btnTitleDev.classList.remove('hidden');
+  }
+
+  function openDevPanel(){
+    refreshScenarioEditor();
+    refreshGuiScenarioEditor();
+    refreshAssetLists();
+    refreshTagCategoryList();
+    refreshSlotCountUi();
+    refreshModeUi();
+    refreshEndlessCharOptions();
+    refreshScoreCharOptions();
+    el.devPanel.classList.remove('hidden');
+  }
+  el.btnDevPanel && el.btnDevPanel.addEventListener('click', openDevPanel);
+  el.btnTitleDev && el.btnTitleDev.addEventListener('click', openDevPanel);
+  el.btnDevClose && el.btnDevClose.addEventListener('click', () => el.devPanel.classList.add('hidden'));
+  el.btnDevDisable && el.btnDevDisable.addEventListener('click', () => {
+    if(!confirm('開発者モードを解除します。ページを再読み込みし、通常のプレイ画面に戻ります。よろしいですか？')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('dev');
+    window.location.href = url.toString();
+  });
+
+  // タブ切替
+  document.querySelectorAll('.dev-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dev-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dev-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector('.dev-section[data-section="' + tab.dataset.tab + '"]').classList.add('active');
+    });
+  });
+  // シナリオエディタ内のサブタブ切替（表形式 / 生JSON）
+  document.querySelectorAll('.dev-subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.dev-subtab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dev-subpanel').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector('.dev-subpanel[data-subpanel="' + tab.dataset.subtab + '"]').classList.add('active');
+      if(tab.dataset.subtab === 'gui') refreshGuiScenarioEditor(); // 生JSON側で編集された内容を表側に反映
+    });
+  });
+
+  // ============================================================
+  // シナリオ GUI テーブルエディタ
+  //   ・script（生JSONと同じデータ）を、ラベル一覧→行テーブルの2階層UIで編集する「ビュー」。
+  //   ・保存形式・反映先は生JSON編集と完全に同じ script 変数 / persistScenario()。
+  //   ・複数項目を持つ部分（choices, aiChoiceのchoices候補, variants）は
+  //     セルのボタンをクリックするとオーバーレイパネルが開いて編集する。
+  // ============================================================
+  let guiCurrentLabel = null; // 今テーブルに表示中のラベル名
+  let guiDragFromIndex = null; // 行ドラッグ中の元インデックス
+
+  // 行の種類を判定する。シナリオJSONの行オブジェクトの形から逆算する。
+  function detectRowType(line){
+    if(line.aiChoice) return 'aiChoice';
+    if(line.text === 'jump' && 'goto' in line) return 'jump';
+    if(line.text === 'jump-affection-check') return 'endingCheck';
+    if(line.text === 'cgUnlock') return 'cgUnlock';
+    if(line.text === 'end') return 'end';
+    if(line.choices && !line.aiChoice) return 'playerChoice';
+    return 'text'; // 通常セリフ/地の文（演出プロパティのみの行も含む）
+  }
+  // 行の種類ごとに、表のどの列が「意味を持つか」を定義する。
+  // ここに無い列はその種類では常にグレーアウトされる。
+  const ROW_TYPE_FIELDS = {
+    text:         ['name', 'text', 'bg', 'bgm', 'se', 'show', 'hide'],
+    playerChoice: ['text', 'bg', 'bgm', 'se', 'show', 'hide', 'choicesSub'],
+    aiChoice:     ['name', 'char', 'scene', 'timeOfDay', 'bg', 'bgm', 'se', 'show', 'hide', 'choicesSub', 'extraTags'],
+    jump:         ['goto'],
+    cgUnlock:     ['bg', 'bgm', 'se', 'show', 'hide', 'cg', 'unlockIf', 'extraTags'],
+    endingCheck:  [],
+    end:          []
+  };
+  const ROW_TYPE_LABELS = {
+    text: '通常セリフ/地の文', playerChoice: 'プレイヤー選択肢', aiChoice: 'AI駆動セリフ',
+    jump: 'ジャンプ', cgUnlock: 'CGアンロック', endingCheck: '好感度エンディング分岐', end: '終了'
+  };
+  function fieldEnabled(rowType, field){ return (ROW_TYPE_FIELDS[rowType] || []).indexOf(field) !== -1; }
+
+  function refreshGuiScenarioEditor(){
+    renderGuiLabelList();
+    if(guiCurrentLabel && !script[guiCurrentLabel]) guiCurrentLabel = null;
+    if(!guiCurrentLabel){
+      const keys = Object.keys(script);
+      guiCurrentLabel = keys.length ? keys[0] : null;
+    }
+    renderGuiRowTable();
+  }
+  function renderGuiLabelList(){
+    el.guiLabelList.innerHTML = '';
+    Object.keys(script).forEach(labelName => {
+      const item = document.createElement('div');
+      item.className = 'scenario-label-item' + (labelName === guiCurrentLabel ? ' active' : '');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = labelName + '（' + script[labelName].length + '行）';
+      item.appendChild(nameSpan);
+      const del = document.createElement('span');
+      del.className = 'label-del'; del.textContent = '削除';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(!confirm('ラベル「' + labelName + '」を削除します。よろしいですか？')) return;
+        delete script[labelName];
+        persistScenario();
+        refreshScenarioEditor();
+        if(guiCurrentLabel === labelName) guiCurrentLabel = null;
+        refreshGuiScenarioEditor();
+      });
+      item.appendChild(del);
+      item.addEventListener('click', () => { guiCurrentLabel = labelName; refreshGuiScenarioEditor(); });
+      el.guiLabelList.appendChild(item);
+    });
+  }
+  el.btnGuiAddLabel && el.btnGuiAddLabel.addEventListener('click', () => {
+    const name = prompt('新しいラベル(シーン)名を入力してください（例: new_scene）');
+    if(!name) return;
+    if(script[name]){ alert('同名のラベルが既に存在します。'); return; }
+    script[name] = [{ text: 'ここに新しい行を書いてください。' }];
+    persistScenario();
+    refreshScenarioEditor();
+    guiCurrentLabel = name;
+    refreshGuiScenarioEditor();
+  });
+
+  function currentGuiLines(){ return guiCurrentLabel ? script[guiCurrentLabel] : null; }
+
+  function commitGuiChange(statusMsg){
+    persistScenario();
+    refreshScenarioEditor(); // 生JSON側テキストエリアも常に同期
+    if(statusMsg){ el.guiScenarioStatus.textContent = statusMsg; el.guiScenarioStatus.className = 'dev-status-line ok'; }
+  }
+
+  function renderGuiRowTable(){
+    const lines = currentGuiLines();
+    el.guiCurrentLabelName.textContent = guiCurrentLabel ? ('ラベル: ' + guiCurrentLabel) : '（ラベルを選択してください）';
+    el.guiRowTableBody.innerHTML = '';
+    if(!lines) return;
+
+    lines.forEach((line, idx) => {
+      const rowType = detectRowType(line);
+      const tr = document.createElement('tr');
+      tr.draggable = true;
+      tr.dataset.index = String(idx);
+
+      // ドラッグ並べ替え
+      tr.addEventListener('dragstart', () => { guiDragFromIndex = idx; tr.classList.add('row-dragging'); });
+      tr.addEventListener('dragend', () => { tr.classList.remove('row-dragging'); });
+      tr.addEventListener('dragover', (e) => { e.preventDefault(); tr.classList.add('row-dragover'); });
+      tr.addEventListener('dragleave', () => tr.classList.remove('row-dragover'));
+      tr.addEventListener('drop', (e) => {
+        e.preventDefault(); tr.classList.remove('row-dragover');
+        if(guiDragFromIndex === null || guiDragFromIndex === idx) return;
+        const moved = lines.splice(guiDragFromIndex, 1)[0];
+        lines.splice(idx, 0, moved);
+        guiDragFromIndex = null;
+        commitGuiChange('行を並べ替えました。');
+        renderGuiRowTable();
+      });
+
+      // ドラッグハンドル
+      const tdHandle = document.createElement('td');
+      tdHandle.className = 'row-drag-handle'; tdHandle.textContent = '≡';
+      tr.appendChild(tdHandle);
+
+      // 種類セレクタ
+      const tdType = document.createElement('td');
+      const typeSel = document.createElement('select');
+      Object.keys(ROW_TYPE_LABELS).forEach(t => {
+        const opt = document.createElement('option'); opt.value = t; opt.textContent = ROW_TYPE_LABELS[t];
+        if(t === rowType) opt.selected = true;
+        typeSel.appendChild(opt);
+      });
+      typeSel.addEventListener('change', () => {
+        lines[idx] = buildDefaultLineForType(typeSel.value, line); // 種類変更時は最低限の骨組みへ作り替える
+        commitGuiChange('行の種類を変更しました。');
+        renderGuiRowTable();
+      });
+      tdType.appendChild(typeSel);
+      tr.appendChild(tdType);
+
+      // 話者名 (name)
+      tr.appendChild(makeGuiTextCell(line, 'name', fieldEnabled(rowType, 'name'), () => commitGuiChange()));
+      // 本文/地の文 (text) ※種類によってはgoto等と兼用フィールドなので通常セリフ/選択肢の時のみ有効
+      const textEnabled = fieldEnabled(rowType, 'text') && rowType !== 'jump' && rowType !== 'cgUnlock' && rowType !== 'endingCheck' && rowType !== 'end';
+      const textCell = makeGuiTextCellWithTagInsert(line, textEnabled, () => commitGuiChange());
+      tr.appendChild(textCell);
+      // goto
+      tr.appendChild(makeGuiTextCell(line, 'goto', fieldEnabled(rowType, 'goto'), () => commitGuiChange()));
+      // char / scene / timeOfDay
+      tr.appendChild(makeGuiTextCell(line, 'char', fieldEnabled(rowType, 'char'), () => commitGuiChange()));
+      tr.appendChild(makeGuiTextCell(line, 'scene', fieldEnabled(rowType, 'scene'), () => commitGuiChange()));
+      tr.appendChild(makeGuiTextCell(line, 'timeOfDay', fieldEnabled(rowType, 'timeOfDay'), () => commitGuiChange()));
+      // bg / bgm / se
+      tr.appendChild(makeGuiTextCell(line, 'bg', fieldEnabled(rowType, 'bg'), () => commitGuiChange()));
+      tr.appendChild(makeGuiTextCell(line, 'bgm', fieldEnabled(rowType, 'bgm'), () => commitGuiChange()));
+      tr.appendChild(makeGuiTextCell(line, 'se', fieldEnabled(rowType, 'se'), () => commitGuiChange()));
+      // cg / unlockIf
+      tr.appendChild(makeGuiTextCell(line, 'cg', fieldEnabled(rowType, 'cg'), () => commitGuiChange()));
+      tr.appendChild(makeGuiUnlockIfCell(line, fieldEnabled(rowType, 'unlockIf'), () => commitGuiChange()));
+      // extraTags
+      tr.appendChild(makeGuiExtraTagsCell(line, fieldEnabled(rowType, 'extraTags'), () => commitGuiChange()));
+
+      // 選択肢/候補（サブ構造）セル
+      const tdSub = document.createElement('td');
+      const subEnabled = fieldEnabled(rowType, 'choicesSub');
+      const subBtn = document.createElement('button');
+      subBtn.className = 'row-cell-btn';
+      subBtn.disabled = !subEnabled;
+      if(rowType === 'playerChoice'){
+        subBtn.textContent = '選択肢を編集（' + ((line.choices || []).length) + '件）';
+        subBtn.addEventListener('click', () => openPlayerChoicesSubEditor(line, () => { commitGuiChange('選択肢を更新しました。'); renderGuiRowTable(); }));
+      } else if(rowType === 'aiChoice'){
+        const n = (line.choices || []).length;
+        const vn = line.variants ? Object.keys(line.variants).length : 0;
+        subBtn.textContent = '候補を編集（' + n + '件' + (vn ? ' +variants ' + vn : '') + '）';
+        subBtn.addEventListener('click', () => openAiChoiceSubEditor(line, () => { commitGuiChange('候補を更新しました。'); renderGuiRowTable(); }));
+      } else {
+        subBtn.textContent = '－';
+      }
+      tdSub.appendChild(subBtn);
+      tr.appendChild(tdSub);
+
+      // 削除
+      const tdDel = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.className = 'row-del-btn'; delBtn.textContent = '削除';
+      delBtn.addEventListener('click', () => {
+        if(!confirm('この行を削除します。よろしいですか？')) return;
+        lines.splice(idx, 1);
+        commitGuiChange('行を削除しました。');
+        renderGuiRowTable();
+      });
+      tdDel.appendChild(delBtn);
+      tr.appendChild(tdDel);
+
+      el.guiRowTableBody.appendChild(tr);
+    });
+  }
+
+  // 単純な文字列フィールド用の<td>を作る共通ヘルパー。
+  // isTextArea: 本文欄など長文向けはtextareaにする（今回は簡易にinputへ統一、必要なら拡張可）
+  function makeGuiTextCell(line, field, enabled, onChange){
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = (line[field] !== undefined && line[field] !== null) ? String(line[field]) : '';
+    inp.disabled = !enabled;
+    inp.addEventListener('change', () => {
+      if(inp.value === ''){ delete line[field]; } else { line[field] = inp.value; }
+      onChange();
+    });
+    td.appendChild(inp);
+    return td;
+  }
+  // text列専用: 直下に「タグ挿入」ボタンを添える。
+  // tagCategories（mood/affection、および追加された任意のカテゴリ）に登録済みの値一覧から選ぶと、
+  // [[category:value]] という隠しタグを text の末尾に自動で挿入する。
+  // affectionのようなthreshold型は、代表値（各しきい値のすぐ下の数値）を候補にする。
+  // 状態そのもの（tagCategories）はここでは「隠しタグを打つのを手伝うだけ」であり、
+  // 行のプロパティとして直接持たせるextraTags列とは扱いを分けている。
+  function buildTagInsertOptions(){
+    // { label, catKey, kind } の配列。kind: 'fixed'(enum、値をそのまま挿入) | 'delta'(threshold、挿入時に増減値をpromptする)
+    const options = [];
+    Object.keys(tagCategories).forEach(catKey => {
+      const cat = tagCategories[catKey];
+      if(cat.type === 'enum'){
+        (cat.values || []).forEach(v => options.push({ label: catKey + ':' + v, catKey, kind: 'fixed', value: v }));
+      } else if(cat.type === 'threshold'){
+        // threshold型は「量」を表すカテゴリなので、固定値ではなく毎回増減値をpromptする1エントリだけを出す
+        options.push({ label: catKey + '（増減値を指定）', catKey, kind: 'delta' });
+      }
+    });
+    return options;
+  }
+  // タグカテゴリ一覧をプロンプトで選ばせ、挿入すべき "[[category:value]]" 文字列を返す（キャンセル時は null）。
+  // input/textareaどちらのフィールドからも呼べる、挿入ロジックの共通部分。
+  function promptTagInsertValue(){
+    const options = buildTagInsertOptions();
+    if(options.length === 0){ alert('挿入できるタグカテゴリがありません（状況タグタブで追加できます）。'); return null; }
+    const labels = options.map((o, i) => (i+1) + ': ' + o.label);
+    const choice = prompt('挿入するタグを番号で選んでください:\n' + labels.join('\n'));
+    const idx = parseInt(choice, 10) - 1;
+    const opt = options[idx];
+    if(!opt) return null;
+    let insertValue;
+    if(opt.kind === 'delta'){
+      const delta = prompt(opt.catKey + 'の増減値を入力してください（例: +5 / -3）', '+5');
+      if(!delta) return null;
+      insertValue = opt.catKey + ':' + delta;
+    } else {
+      insertValue = opt.catKey + ':' + opt.value;
+    }
+    return '[[' + insertValue + ']]';
+  }
+  // aiChoiceの候補文（textarea）向けの「+タグ挿入」ボタンを作る汎用ヘルパー。
+  // 選んだタグを textarea の末尾に追記し、onCommit(newValue) でデータ側にも反映する
+  // （textareaのchangeイベントはフォーカスが外れないと発火しないため、ボタン操作では明示的に呼ぶ）。
+  function makeTagInsertButtonForTextarea(ta, onCommit){
+    const btn = document.createElement('button');
+    btn.className = 'dev-mini-btn'; btn.textContent = '+タグ挿入';
+    btn.addEventListener('click', () => {
+      const tagStr = promptTagInsertValue();
+      if(!tagStr) return;
+      ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '') + tagStr;
+      onCommit(ta.value);
+    });
+    return btn;
+  }
+  function makeGuiTextCellWithTagInsert(line, enabled, onChange){
+    const td = document.createElement('td');
+    const wrap = document.createElement('div');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = (line.text !== undefined && line.text !== null) ? String(line.text) : '';
+    inp.disabled = !enabled;
+    inp.addEventListener('change', () => {
+      if(inp.value === ''){ delete line.text; } else { line.text = inp.value; }
+      onChange();
+    });
+    wrap.appendChild(inp);
+
+    const tagBtn = document.createElement('button');
+    tagBtn.className = 'row-cell-btn'; tagBtn.textContent = '+タグ挿入'; tagBtn.style.marginTop = '3px';
+    tagBtn.disabled = !enabled;
+    tagBtn.addEventListener('click', () => {
+      const tagStr = promptTagInsertValue();
+      if(!tagStr) return;
+      inp.value = (inp.value ? inp.value.replace(/\s+$/, '') + ' ' : '') + tagStr;
+      line.text = inp.value;
+      onChange();
+    });
+    wrap.appendChild(tagBtn);
+
+    td.appendChild(wrap);
+    return td;
+  }
+  // unlockIf は文字列 or 配列(AND条件)なので、カンマ区切り入力として扱い、配列/単一文字列を自動判定して保存する。
+  function makeGuiUnlockIfCell(line, enabled, onChange){
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'affection_high,mood_happy';
+    inp.value = Array.isArray(line.unlockIf) ? line.unlockIf.join(',') : (line.unlockIf || '');
+    inp.disabled = !enabled;
+    inp.addEventListener('change', () => {
+      const parts = inp.value.split(',').map(s => s.trim()).filter(Boolean);
+      if(parts.length === 0) delete line.unlockIf;
+      else if(parts.length === 1) line.unlockIf = parts[0];
+      else line.unlockIf = parts;
+      onChange();
+    });
+    td.appendChild(inp);
+    return td;
+  }
+  // extraTags: aiChoice/cgUnlock行限定の一時的な自由タグ配列（tagCategoriesに登録されていない値もOK）。
+  // unlockIfと違い、buildState()にそのままpushされる配列としてのみ扱われるため、常に配列で保存する。
+  function makeGuiExtraTagsCell(line, enabled, onChange){
+    const td = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'rainy,first_time';
+    inp.value = Array.isArray(line.extraTags) ? line.extraTags.join(',') : '';
+    inp.disabled = !enabled;
+    inp.addEventListener('change', () => {
+      const parts = inp.value.split(',').map(s => s.trim()).filter(Boolean);
+      if(parts.length === 0) delete line.extraTags;
+      else line.extraTags = parts;
+      onChange();
+    });
+    td.appendChild(inp);
+    return td;
+  }
+
+  // 行の種類を切り替えた時の最低限の骨組みを作る。既存の値（text等）は可能な範囲で引き継ぐ。
+  function buildDefaultLineForType(type, oldLine){
+    const base = {};
+    if(type === 'text') return { name: oldLine.name || undefined, text: oldLine.text && oldLine.text !== 'jump' && oldLine.text !== 'cgUnlock' && oldLine.text !== 'end' && oldLine.text !== 'jump-affection-check' ? oldLine.text : '（本文）' };
+    if(type === 'playerChoice') return { text: '（前振り文）', choices: [{ text: '選択肢A', goto: '' }] };
+    if(type === 'aiChoice') return { aiChoice: true, char: oldLine.char || MAIN_CHAR, scene: oldLine.scene || 'scene_name', timeOfDay: oldLine.timeOfDay || 'day', choices: ['候補セリフ1'] };
+    if(type === 'jump') return { text: 'jump', goto: oldLine.goto || '' };
+    if(type === 'cgUnlock') return { text: 'cgUnlock', cg: oldLine.cg || '' };
+    if(type === 'endingCheck') return { text: 'jump-affection-check', goto: null };
+    if(type === 'end') return { text: 'end' };
+    return base;
+  }
+  el.btnGuiAddRow && el.btnGuiAddRow.addEventListener('click', () => {
+    if(!guiCurrentLabel){ alert('先にラベルを選択または追加してください。'); return; }
+    script[guiCurrentLabel].push({ text: '（新しい行）' });
+    commitGuiChange('行を追加しました。');
+    renderGuiRowTable();
+  });
+
+  // ---------- サブエディタ・オーバーレイ（選択肢 / aiChoice候補 / variants） ----------
+  function openSubEditor(title, bodyBuilder){
+    el.guiSubEditorTitle.textContent = title;
+    el.guiSubEditorBody.innerHTML = '';
+    bodyBuilder(el.guiSubEditorBody);
+    el.guiSubEditorOverlay.classList.remove('hidden');
+  }
+  el.btnGuiSubEditorClose && el.btnGuiSubEditorClose.addEventListener('click', () => el.guiSubEditorOverlay.classList.add('hidden'));
+
+  // プレイヤー選択肢（オブジェクト配列: {text, goto, affection, mood}）の編集
+  function openPlayerChoicesSubEditor(line, onSave){
+    if(!line.choices) line.choices = [];
+    openSubEditor('選択肢を編集', (body) => {
+      const list = document.createElement('div');
+      function renderList(){
+        list.innerHTML = '';
+        line.choices.forEach((c, i) => {
+          const item = document.createElement('div'); item.className = 'sub-editor-item';
+          const head = document.createElement('div'); head.className = 'sub-editor-item-head';
+          head.innerHTML = '<span>選択肢 ' + (i+1) + '</span>';
+          const delBtn = document.createElement('button'); delBtn.className = 'dev-mini-btn danger'; delBtn.textContent = '削除';
+          delBtn.addEventListener('click', () => { line.choices.splice(i, 1); renderList(); });
+          head.appendChild(delBtn);
+          item.appendChild(head);
+
+          item.appendChild(subField('選択肢文', c.text || '', v => c.text = v));
+          item.appendChild(subField('goto先ラベル', c.goto || '', v => c.goto = v));
+          item.appendChild(subField('affection増減', (c.affection !== undefined ? String(c.affection) : ''), v => { if(v === '') delete c.affection; else c.affection = parseFloat(v) || 0; }));
+          item.appendChild(subField('mood', c.mood || '', v => { if(v === '') delete c.mood; else c.mood = v; }));
+          list.appendChild(item);
+        });
+      }
+      renderList();
+      body.appendChild(list);
+      const addBtn = document.createElement('button');
+      addBtn.className = 'dev-mini-btn'; addBtn.textContent = '＋ 選択肢を追加'; addBtn.style.marginTop = '6px';
+      addBtn.addEventListener('click', () => { line.choices.push({ text: '新しい選択肢', goto: '' }); renderList(); });
+      body.appendChild(addBtn);
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'dev-mini-btn'; saveBtn.textContent = '保存して閉じる'; saveBtn.style.marginTop = '12px'; saveBtn.style.display = 'block';
+      saveBtn.addEventListener('click', () => { el.guiSubEditorOverlay.classList.add('hidden'); onSave(); });
+      body.appendChild(saveBtn);
+    });
+  }
+
+  // aiChoice の候補（文字列配列）と variants（タグ集合ごとの追加候補）の編集
+  function openAiChoiceSubEditor(line, onSave){
+    if(!line.choices) line.choices = [];
+    openSubEditor('AI駆動セリフの候補を編集', (body) => {
+      const baseTitle = document.createElement('div');
+      baseTitle.className = 'sub-editor-item-head'; baseTitle.style.marginTop = '0';
+      baseTitle.innerHTML = '<span>基本候補（常に選択対象）</span>';
+      body.appendChild(baseTitle);
+
+      const baseList = document.createElement('div');
+      function renderBaseList(){
+        baseList.innerHTML = '';
+        line.choices.forEach((choiceText, i) => {
+          const item = document.createElement('div'); item.className = 'sub-editor-item';
+          const head = document.createElement('div'); head.className = 'sub-editor-item-head';
+          head.innerHTML = '<span>候補 ' + (i+1) + '</span>';
+          const delBtn = document.createElement('button'); delBtn.className = 'dev-mini-btn danger'; delBtn.textContent = '削除';
+          delBtn.addEventListener('click', () => { line.choices.splice(i, 1); renderBaseList(); });
+          head.appendChild(delBtn);
+          item.appendChild(head);
+          const ta = document.createElement('textarea');
+          ta.value = choiceText;
+          ta.placeholder = '候補セリフ（[[face:xxx]] 等のタグを含めてもよい）';
+          ta.addEventListener('change', () => { line.choices[i] = ta.value; });
+          item.appendChild(ta);
+          item.appendChild(makeTagInsertButtonForTextarea(ta, (v) => { line.choices[i] = v; }));
+          baseList.appendChild(item);
+        });
+      }
+      renderBaseList();
+      body.appendChild(baseList);
+      const addBaseBtn = document.createElement('button');
+      addBaseBtn.className = 'dev-mini-btn'; addBaseBtn.textContent = '＋ 基本候補を追加'; addBaseBtn.style.marginTop = '6px';
+      addBaseBtn.addEventListener('click', () => { line.choices.push('新しい候補セリフ'); renderBaseList(); });
+      body.appendChild(addBaseBtn);
+
+      const varTitle = document.createElement('div');
+      varTitle.className = 'sub-editor-item-head'; varTitle.style.marginTop = '18px';
+      varTitle.innerHTML = '<span>variants（タグ集合ごとの追加候補）</span>';
+      body.appendChild(varTitle);
+
+      if(!line.variants) line.variants = {};
+      const varList = document.createElement('div');
+      function renderVarList(){
+        varList.innerHTML = '';
+        Object.keys(line.variants).forEach(tagCombo => {
+          const item = document.createElement('div'); item.className = 'sub-editor-item';
+          const head = document.createElement('div'); head.className = 'sub-editor-item-head';
+          head.innerHTML = '<span>タグ集合</span>';
+          const delBtn = document.createElement('button'); delBtn.className = 'dev-mini-btn danger'; delBtn.textContent = 'このタグ集合を削除';
+          delBtn.addEventListener('click', () => { delete line.variants[tagCombo]; renderVarList(); });
+          head.appendChild(delBtn);
+          item.appendChild(head);
+
+          const tagInp = document.createElement('input');
+          tagInp.type = 'text'; tagInp.value = tagCombo;
+          tagInp.placeholder = 'affection_high,mood_happy';
+          tagInp.addEventListener('change', () => {
+            if(tagInp.value === tagCombo || !tagInp.value.trim()) return;
+            const arr = line.variants[tagCombo];
+            delete line.variants[tagCombo];
+            line.variants[tagInp.value.trim()] = arr;
+            renderVarList();
+          });
+          item.appendChild(tagInp);
+
+          const candList = document.createElement('div');
+          function renderCandList(){
+            candList.innerHTML = '';
+            (line.variants[tagCombo] || []).forEach((cand, ci) => {
+              const row = document.createElement('div'); row.className = 'sub-editor-field';
+              const ta = document.createElement('textarea');
+              ta.value = cand;
+              ta.addEventListener('change', () => { line.variants[tagCombo][ci] = ta.value; });
+              row.appendChild(ta);
+              row.appendChild(makeTagInsertButtonForTextarea(ta, (v) => { line.variants[tagCombo][ci] = v; }));
+              const delCand = document.createElement('button'); delCand.className = 'dev-mini-btn danger'; delCand.textContent = '削除';
+              delCand.addEventListener('click', () => { line.variants[tagCombo].splice(ci, 1); renderCandList(); });
+              row.appendChild(delCand);
+              candList.appendChild(row);
+            });
+          }
+          renderCandList();
+          item.appendChild(candList);
+          const addCandBtn = document.createElement('button');
+          addCandBtn.className = 'dev-mini-btn'; addCandBtn.textContent = '＋ このタグ集合に候補を追加';
+          addCandBtn.addEventListener('click', () => { line.variants[tagCombo].push('新しい候補セリフ'); renderCandList(); });
+          item.appendChild(addCandBtn);
+
+          varList.appendChild(item);
+        });
+      }
+      renderVarList();
+      body.appendChild(varList);
+      const addVarBtn = document.createElement('button');
+      addVarBtn.className = 'dev-mini-btn'; addVarBtn.textContent = '＋ 新しいタグ集合を追加'; addVarBtn.style.marginTop = '6px';
+      addVarBtn.addEventListener('click', () => {
+        const key = prompt('タグ集合をカンマ区切りで入力（例: affection_high,mood_happy）');
+        if(!key || !key.trim()) return;
+        if(line.variants[key]){ alert('同じタグ集合が既に存在します。'); return; }
+        line.variants[key] = ['新しい候補セリフ'];
+        renderVarList();
+      });
+      body.appendChild(addVarBtn);
+      if(Object.keys(line.variants).length === 0){ /* 空でも保存時にvariants:{}のまま残る（無害） */ }
+
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'dev-mini-btn'; saveBtn.textContent = '保存して閉じる'; saveBtn.style.marginTop = '12px'; saveBtn.style.display = 'block';
+      saveBtn.addEventListener('click', () => {
+        if(Object.keys(line.variants).length === 0) delete line.variants; // 空オブジェクトは残さずクリーンにする
+        el.guiSubEditorOverlay.classList.add('hidden');
+        onSave();
+      });
+      body.appendChild(saveBtn);
+    });
+  }
+  function subField(labelText, value, onChange){
+    const row = document.createElement('div'); row.className = 'sub-editor-field';
+    const label = document.createElement('label'); label.textContent = labelText;
+    const inp = document.createElement('input'); inp.type = 'text'; inp.value = value;
+    inp.addEventListener('change', () => onChange(inp.value));
+    row.appendChild(label); row.appendChild(inp);
+    return row;
+  }
+
+  // --- シナリオエディタ（生JSON） ---
+  function refreshScenarioEditor(){
+    el.scenarioEditor.value = JSON.stringify(script, null, 2);
+    el.scenarioStatus.textContent = '';
+    el.scenarioStatus.className = 'dev-status-line';
+  }
+  el.btnScenarioApply.addEventListener('click', () => {
+    try{
+      const parsed = JSON.parse(el.scenarioEditor.value);
+      script = parsed;
+      persistScenario();
+      refreshGuiScenarioEditor();
+      el.scenarioStatus.textContent = '反映しました。シナリオモードで動作確認できます。';
+      el.scenarioStatus.className = 'dev-status-line ok';
+      showToast('シナリオを反映しました');
+    }catch(e){
+      el.scenarioStatus.textContent = 'JSONエラー: ' + e.message;
+      el.scenarioStatus.className = 'dev-status-line err';
+    }
+  });
+  el.btnScenarioFormat.addEventListener('click', () => {
+    try{
+      const parsed = JSON.parse(el.scenarioEditor.value);
+      el.scenarioEditor.value = JSON.stringify(parsed, null, 2);
+      el.scenarioStatus.textContent = '整形しました。';
+      el.scenarioStatus.className = 'dev-status-line ok';
+    }catch(e){
+      el.scenarioStatus.textContent = 'JSONエラー: ' + e.message;
+      el.scenarioStatus.className = 'dev-status-line err';
+    }
+  });
+  el.btnScenarioAddLabel.addEventListener('click', () => {
+    const name = prompt('新しいラベル(シーン)名を入力してください（例: new_scene）');
+    if(!name) return;
+    try{
+      const parsed = JSON.parse(el.scenarioEditor.value);
+      if(parsed[name]){ alert('同名のラベルが既に存在します。'); return; }
+      parsed[name] = [ { text: "ここに新しい行を書いてください。" } ];
+      el.scenarioEditor.value = JSON.stringify(parsed, null, 2);
+      el.scenarioStatus.textContent = 'ラベル "' + name + '" を追加しました（まだ反映はされていません。反映するボタンを押してください）。';
+      el.scenarioStatus.className = 'dev-status-line ok';
+    }catch(e){
+      el.scenarioStatus.textContent = 'JSONエラー: ' + e.message;
+      el.scenarioStatus.className = 'dev-status-line err';
+    }
+  });
+  el.btnScenarioAddChoiceLine.addEventListener('click', () => {
+    const template = ',\n{ "text": "（地の文 or 前振りセリフ）", "choices": [\n  { "text": "選択肢A", "goto": "label_a", "affection": 5 },\n  { "text": "選択肢B", "goto": "label_b", "affection": 0 }\n] }';
+    const pos = el.scenarioEditor.selectionStart;
+    const val = el.scenarioEditor.value;
+    el.scenarioEditor.value = val.slice(0, pos) + template + val.slice(pos);
+    el.scenarioEditor.focus();
+    el.scenarioStatus.textContent = '選択肢テンプレートを挿入しました。カンマの位置など整合性を確認してください。';
+    el.scenarioStatus.className = 'dev-status-line';
+  });
+
+  // --- アセット編集（キャラ/背景/BGM/SE/CG） ---
+  function makeAssetRow(container, key, fields, onDelete){
+    const row = document.createElement('div');
+    row.className = 'dev-field-row';
+    row.innerHTML = '<label>' + key + '</label>';
+    fields.forEach(f => row.appendChild(f));
+    const del = document.createElement('button');
+    del.className = 'dev-mini-btn danger';
+    del.textContent = '削除';
+    del.addEventListener('click', onDelete);
+    row.appendChild(del);
+    container.appendChild(row);
+  }
+  function textInput(value, onChange){
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = value || ''; inp.placeholder = 'URL または値';
+    inp.addEventListener('change', () => onChange(inp.value));
+    return inp;
+  }
+  // --- 状況タグカテゴリ編集（choiceの重み付けに使う排他グループ） ---
+  function refreshTagCategoryList(){
+    el.devTagCategoryList.innerHTML = '';
+    Object.keys(tagCategories).forEach(catKey => {
+      const cat = tagCategories[catKey];
+      const wrap = document.createElement('div');
+      wrap.className = 'dev-field-row';
+      wrap.style.flexWrap = 'wrap';
+      wrap.style.alignItems = 'flex-start';
+
+      const label = document.createElement('label');
+      label.textContent = catKey + (cat.type === 'threshold' ? '（数値しきい値型）' : '（enum型）');
+      label.style.minWidth = '160px';
+      wrap.appendChild(label);
+
+      if(cat.type === 'enum'){
+        const valuesInp = textInput(cat.values.join(','), v => {
+          cat.values = v.split(',').map(s => s.trim()).filter(Boolean);
+          if(cat.values.indexOf(cat.fallback) === -1) cat.fallback = cat.values[0] || 'normal';
+          persistTagCategories();
+        });
+        valuesInp.placeholder = 'カンマ区切りで値を列挙 (例: normal,tired,happy)';
+        valuesInp.style.minWidth = '260px';
+        wrap.appendChild(valuesInp);
+
+        const fallbackInp = textInput(cat.fallback, v => { cat.fallback = v; persistTagCategories(); });
+        fallbackInp.placeholder = '不正な値が来た時の既定値';
+        fallbackInp.style.maxWidth = '140px';
+        wrap.appendChild(fallbackInp);
+      } else if(cat.type === 'threshold'){
+        const info = document.createElement('span');
+        info.className = 'dev-status-line';
+        info.style.margin = '0';
+        info.textContent = cat.thresholds.map(t => (t.lt === Infinity ? (t.label + '(それ以上)') : ('<' + t.lt + ':' + t.label))).join(' / ');
+        wrap.appendChild(info);
+      }
+
+      // affection は好感度システムの根幹なので削除不可。それ以外は削除できる。
+      if(catKey !== 'affection'){
+        const del = document.createElement('button');
+        del.className = 'dev-mini-btn danger';
+        del.textContent = '削除';
+        del.addEventListener('click', () => {
+          if(!confirm('カテゴリ「' + catKey + '」を削除します。既存の学習データにこのタグが含まれていても、以後は生成されなくなるだけで学習データ自体は消えません。よろしいですか？')) return;
+          delete tagCategories[catKey];
+          persistTagCategories();
+          refreshTagCategoryList();
+        });
+        wrap.appendChild(del);
+      }
+
+      el.devTagCategoryList.appendChild(wrap);
+    });
+  }
+  el.btnAddTagCategory && el.btnAddTagCategory.addEventListener('click', () => {
+    const key = prompt('カテゴリのキー名（英数字とアンダースコアのみ、例: weather）');
+    if(!key) return;
+    if(!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)){ alert('英字またはアンダースコアで始まる英数字のみ使用できます。'); return; }
+    if(tagCategories[key]){ alert('そのキー名は既に使われています。'); return; }
+    tagCategories[key] = { type: 'enum', values: ['value1', 'value2'], fallback: 'value1' };
+    persistTagCategories();
+    refreshTagCategoryList();
+  });
+
+  // ============================================================
+  // 学習スコア・エディタ（開発者パネル「学習スコア」タブ）
+  //   DialogueMemorySystem.scores のキー（"タグ集合(ソート済み,区切り)|||セリフ本文"）を
+  //   分解して表形式に見せ、スコアを直接編集できるようにする。
+  //   DialogueMemorySystem / CharacterDialogueHub のロジック自体には一切手を加えない
+  //   （このエディタは scores オブジェクトを読み書きするだけの「ビュー」）。
+  // ============================================================
+  const SCORE_KEY_SEP = '|||'; // DialogueMemorySystem.makeKey() と同じ区切り文字。変更する場合は両方揃えること。
+  function parseScoreKey(key){
+    const sepIdx = key.indexOf(SCORE_KEY_SEP);
+    if(sepIdx === -1) return { tagCombo: '', choice: key }; // 想定外の形式でも表示だけはできるようフォールバック
+    return { tagCombo: key.slice(0, sepIdx), choice: key.slice(sepIdx + SCORE_KEY_SEP.length) };
+  }
+  function makeScoreKey(tagCombo, choice){
+    // DialogueMemorySystem.makeKey() と完全に同じ規則（重複除去はせず、ソートのみ）でキーを作る。
+    // ここで勝手に重複除去すると、実際のゲームプレイ中にDialogueMemorySystem側が生成するキーと
+    // ズレてしまう可能性があるため、あえて makeKey() と同じ「ソートのみ」に揃えている。
+    const tags = tagCombo.split(',').map(s => s.trim()).filter(Boolean).sort();
+    return tags.join(',') + SCORE_KEY_SEP + choice;
+  }
+  // 入力されたタグ集合文字列に、意味のない重複タグが含まれていないかだけをチェックする（エディタ側の入力ミス検知用）。
+  function findDuplicateTagsInCombo(tagCombo){
+    const tags = tagCombo.split(',').map(s => s.trim()).filter(Boolean);
+    const seen = new Set(); const dupes = new Set();
+    tags.forEach(t => { if(seen.has(t)) dupes.add(t); seen.add(t); });
+    return Array.from(dupes);
+  }
+  function refreshScoreCharOptions(){
+    el.scoreCharSelect.innerHTML = '';
+    const keys = Object.keys(hubs);
+    if(keys.length === 0){
+      const opt = document.createElement('option');
+      opt.textContent = '（まだ会話履歴のあるキャラがいません）'; opt.value = '';
+      el.scoreCharSelect.appendChild(opt);
+      el.scoreSceneSelect.innerHTML = '';
+      renderScoreTable();
+      return;
+    }
+    keys.forEach(charKey => {
+      const opt = document.createElement('option');
+      opt.value = charKey;
+      opt.textContent = (characters[charKey] ? characters[charKey].name : charKey) + ' (' + charKey + ')';
+      el.scoreCharSelect.appendChild(opt);
+    });
+    refreshScoreSceneOptions();
+  }
+  function refreshScoreSceneOptions(){
+    const charKey = el.scoreCharSelect.value;
+    el.scoreSceneSelect.innerHTML = '';
+    if(!charKey || !hubs[charKey]){ renderScoreTable(); return; }
+    const sceneNames = Object.keys(hubs[charKey].scenes);
+    if(sceneNames.length === 0){
+      const opt = document.createElement('option');
+      opt.textContent = '（このキャラにはまだシーンがありません）'; opt.value = '';
+      el.scoreSceneSelect.appendChild(opt);
+      renderScoreTable();
+      return;
+    }
+    sceneNames.forEach(sceneName => {
+      const opt = document.createElement('option');
+      opt.value = sceneName; opt.textContent = sceneName;
+      el.scoreSceneSelect.appendChild(opt);
+    });
+    renderScoreTable();
+  }
+  function renderScoreTable(){
+    const charKey = el.scoreCharSelect.value;
+    const sceneName = el.scoreSceneSelect.value;
+    el.scoreTableWrap.innerHTML = '';
+    if(!charKey || !sceneName || !hubs[charKey] || !hubs[charKey].scenes[sceneName]){
+      const empty = document.createElement('div');
+      empty.className = 'dev-score-empty';
+      empty.textContent = 'キャラとシーンを選んでください（表示する学習データがありません）。';
+      el.scoreTableWrap.appendChild(empty);
+      return;
+    }
+    const memory = hubs[charKey].scenes[sceneName]; // DialogueMemorySystem インスタンス
+    const keys = Object.keys(memory.scores);
+    if(keys.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'dev-score-empty';
+      empty.textContent = 'このシーンにはまだ学習データがありません。下の「新規エントリ追加」から作成できます。';
+      el.scoreTableWrap.appendChild(empty);
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'dev-score-table';
+    table.innerHTML = '<thead><tr><th>タグ集合</th><th>セリフ</th><th>スコア</th><th></th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    keys.forEach(key => {
+      const { tagCombo, choice } = parseScoreKey(key);
+      const tr = document.createElement('tr');
+
+      const tdTags = document.createElement('td'); tdTags.className = 'score-tags'; tdTags.textContent = tagCombo || '(タグなし)';
+      const tdChoice = document.createElement('td'); tdChoice.className = 'score-choice'; tdChoice.textContent = choice;
+
+      const tdScore = document.createElement('td');
+      const scoreInp = document.createElement('input');
+      scoreInp.type = 'number'; scoreInp.step = '0.1'; scoreInp.value = memory.scores[key];
+      scoreInp.addEventListener('change', () => {
+        const v = parseFloat(scoreInp.value);
+        if(isNaN(v)){ scoreInp.value = memory.scores[key]; return; }
+        memory.scores[key] = v;
+        memory.trainedKeys.add(key); // 手動編集も「学習済み」として扱う
+        persistAllHubs();
+        showScoreStatus('スコアを更新しました（' + key.split(SCORE_KEY_SEP)[1] + ' = ' + v + '）', 'ok');
+      });
+      tdScore.appendChild(scoreInp);
+
+      const tdDel = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.className = 'dev-mini-btn danger'; delBtn.textContent = '削除';
+      delBtn.addEventListener('click', () => {
+        delete memory.scores[key];
+        memory.trainedKeys.delete(key);
+        persistAllHubs();
+        renderScoreTable();
+        showScoreStatus('エントリを削除しました', 'ok');
+      });
+      tdDel.appendChild(delBtn);
+
+      tr.appendChild(tdTags); tr.appendChild(tdChoice); tr.appendChild(tdScore); tr.appendChild(tdDel);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    el.scoreTableWrap.appendChild(table);
+  }
+  function showScoreStatus(msg, cls){
+    el.scoreStatus.textContent = msg;
+    el.scoreStatus.className = 'dev-status-line' + (cls ? (' ' + cls) : '');
+  }
+  el.scoreCharSelect && el.scoreCharSelect.addEventListener('change', refreshScoreSceneOptions);
+  el.scoreSceneSelect && el.scoreSceneSelect.addEventListener('change', renderScoreTable);
+  el.btnScoreAdd && el.btnScoreAdd.addEventListener('click', () => {
+    const charKey = el.scoreCharSelect.value;
+    const sceneName = el.scoreSceneSelect.value;
+    if(!charKey || !sceneName){ showScoreStatus('先にキャラとシーンを選んでください。', 'err'); return; }
+    const choice = el.scoreNewChoice.value.trim();
+    if(!choice){ showScoreStatus('セリフ文字列を入力してください。', 'err'); return; }
+    const scoreVal = el.scoreNewScore.value.trim() === '' ? 0 : parseFloat(el.scoreNewScore.value);
+    if(isNaN(scoreVal)){ showScoreStatus('スコアは数値で入力してください。', 'err'); return; }
+    const dupes = findDuplicateTagsInCombo(el.scoreNewTags.value);
+    if(dupes.length){ showScoreStatus('タグ集合に重複があります: ' + dupes.join(', ') + '（1つにまとめてください）', 'err'); return; }
+    const key = makeScoreKey(el.scoreNewTags.value, choice);
+    const memory = hubs[charKey].scenes[sceneName];
+    memory.scores[key] = scoreVal;
+    memory.trainedKeys.add(key);
+    persistAllHubs();
+    el.scoreNewTags.value = ''; el.scoreNewChoice.value = ''; el.scoreNewScore.value = '';
+    renderScoreTable();
+    showScoreStatus('新規エントリを追加しました。', 'ok');
+  });
+
+  function refreshAssetLists(){
+    el.devCharList.innerHTML = '';
+    Object.keys(characters).forEach(key => {
+      const nameInp = textInput(characters[key].name, v => { characters[key].name = v; persistAssets(); });
+      nameInp.style.maxWidth = '90px';
+      const imgInp = textInput(characters[key].img, v => { characters[key].img = v; persistAssets(); });
+      makeAssetRow(el.devCharList, key, [nameInp, imgInp], () => { delete characters[key]; persistAssets(); refreshAssetLists(); refreshEndlessCharOptions(); });
+    });
+    el.devBgList.innerHTML = '';
+    Object.keys(backgrounds).forEach(key => {
+      const imgInp = textInput(backgrounds[key], v => { backgrounds[key] = v; persistAssets(); });
+      makeAssetRow(el.devBgList, key, [imgInp], () => { delete backgrounds[key]; persistAssets(); refreshAssetLists(); });
+    });
+    el.devBgmList.innerHTML = '';
+    Object.keys(bgmList).forEach(key => {
+      const urlInp = textInput(bgmList[key], v => { bgmList[key] = v; persistAssets(); });
+      makeAssetRow(el.devBgmList, key, [urlInp], () => { delete bgmList[key]; persistAssets(); refreshAssetLists(); });
+    });
+    el.devSeList.innerHTML = '';
+    Object.keys(seList).forEach(key => {
+      const urlInp = textInput(seList[key], v => { seList[key] = v; persistAssets(); });
+      makeAssetRow(el.devSeList, key, [urlInp], () => { delete seList[key]; persistAssets(); refreshAssetLists(); });
+    });
+    el.devCgList.innerHTML = '';
+    Object.keys(cgGallery).forEach(key => {
+      const labelInp = textInput(cgGallery[key].label, v => { cgGallery[key].label = v; persistAssets(); });
+      labelInp.style.maxWidth = '110px';
+      const imgInp = textInput(cgGallery[key].img, v => { cgGallery[key].img = v; persistAssets(); });
+      makeAssetRow(el.devCgList, key, [labelInp, imgInp], () => { delete cgGallery[key]; persistAssets(); refreshAssetLists(); });
+    });
+  }
+  el.btnAddChar.addEventListener('click', () => {
+    const key = prompt('キャラのキー名（英数字、例: yui）');
+    if(!key) return;
+    characters[key] = { name: key, img: '' };
+    persistAssets(); refreshAssetLists(); refreshEndlessCharOptions();
+  });
+  el.btnAddBg.addEventListener('click', () => {
+    const key = prompt('背景のキー名（例: park）');
+    if(!key) return;
+    backgrounds[key] = '';
+    persistAssets(); refreshAssetLists();
+  });
+  el.btnAddBgm.addEventListener('click', () => {
+    const key = prompt('BGMのキー名（例: park_theme）');
+    if(!key) return;
+    bgmList[key] = '';
+    persistAssets(); refreshAssetLists();
+  });
+  el.btnAddSe.addEventListener('click', () => {
+    const key = prompt('SEのキー名（例: door_open）');
+    if(!key) return;
+    seList[key] = '';
+    persistAssets(); refreshAssetLists();
+  });
+  el.btnAddCg.addEventListener('click', () => {
+    const key = prompt('CGのキー名（例: cg_park_evening）');
+    if(!key) return;
+    cgGallery[key] = { label: key, img: '', unlocked: false };
+    persistAssets(); refreshAssetLists();
+  });
+
+  // --- セーブ設定 ---
+  function refreshSlotCountUi(){
+    el.devSlotCount.value = SLOT_COUNT;
+    el.slotCountCtrl.classList.remove('hidden');
+    el.slotCountVal.textContent = SLOT_COUNT;
+  }
+  el.btnApplySlotCount.addEventListener('click', () => {
+    const n = parseInt(el.devSlotCount.value, 10);
+    if(isNaN(n) || n < 1 || n > 30){ alert('1〜30の範囲で入力してください。'); return; }
+    SLOT_COUNT = n; persistSlotCount(); refreshSlotCountUi();
+    showToast('スロット数を ' + n + ' に変更しました');
+  });
+  el.slotCountMinus.addEventListener('click', () => { if(SLOT_COUNT>1){ SLOT_COUNT--; persistSlotCount(); refreshSlotCountUi(); renderSlotGrid(); } });
+  el.slotCountPlus.addEventListener('click', () => { if(SLOT_COUNT<30){ SLOT_COUNT++; persistSlotCount(); refreshSlotCountUi(); renderSlotGrid(); } });
+  el.btnWipeAll.addEventListener('click', () => {
+    if(!confirm('全てのセーブデータ・学習データ・CG解放状況を削除します。よろしいですか？')) return;
+    [SAVE_KEY, MEMORY_KEY, GALLERY_KEY].forEach(k => { try{ localStorage.removeItem(k); }catch(e){} });
+    showToast('全データを削除しました');
+    renderSlotGrid(); updateTitleContinueButton();
+  });
+
+  // --- モード切替 ---
+  function refreshModeUi(){
+    el.modeCardScenario.classList.toggle('active', gameMode === 'scenario');
+    el.modeCardEndless.classList.toggle('active', gameMode === 'endless');
+    el.endlessControls.style.display = gameMode === 'endless' ? 'block' : 'none';
+  }
+  function refreshEndlessCharOptions(){
+    el.endlessCharSelect.innerHTML = '';
+    Object.keys(characters).forEach(key => {
+      const opt = document.createElement('option');
+      opt.value = key; opt.textContent = characters[key].name + ' (' + key + ')';
+      el.endlessCharSelect.appendChild(opt);
+    });
+  }
+  el.modeCardScenario.addEventListener('click', () => { gameMode = 'scenario'; persistGameMode(); refreshModeUi(); stopEndlessMode(); });
+  el.modeCardEndless.addEventListener('click', () => { gameMode = 'endless'; persistGameMode(); refreshModeUi(); });
+  el.endlessSubCardFixed.addEventListener('click', () => {
+    endlessSubMode = 'fixed';
+    el.endlessSubCardFixed.classList.add('active'); el.endlessSubCardCycle.classList.remove('active');
+  });
+  el.endlessSubCardCycle.addEventListener('click', () => {
+    endlessSubMode = 'cycle';
+    el.endlessSubCardCycle.classList.add('active'); el.endlessSubCardFixed.classList.remove('active');
+  });
+  el.btnEndlessStart.addEventListener('click', () => {
+    el.devPanel.classList.add('hidden');
+    startEndlessMode();
+    showToast('エンドレスモード開始（' + (endlessSubMode === 'fixed' ? '固定' : '周回') + '）');
+  });
+  el.btnEndlessStop.addEventListener('click', () => { stopEndlessMode(); showTitle(); showToast('エンドレスモードを終了しました'); });
+
+  // --- 隠しタグ シミュレーター ---
+  el.btnTagTest.addEventListener('click', () => {
+    const { cleanText, tags } = extractHiddenTags(el.tagTestInput.value);
+    let out = '表示テキスト: "' + cleanText + '"\n検出タグ: ' + (tags.length ? tags.map(t => t.key + '=' + t.value).join(', ') : 'なし');
+    el.tagTestResult.textContent = out;
+    el.tagTestResult.className = 'dev-status-line ok';
+  });
+
+  // ---- イベント（通常） ----
+  el.dialogueBox.addEventListener('click', advance);
+  el.btnStart.addEventListener('click', startGame);
+  el.btnTitleLoad.addEventListener('click', () => { if(!el.btnTitleLoad.disabled) openSavePanel('load'); });
+  el.btnTitleGallery.addEventListener('click', () => { renderGallery(); el.galleryPanel.classList.remove('hidden'); });
+  el.btnGallery.addEventListener('click', () => { renderGallery(); el.galleryPanel.classList.remove('hidden'); });
+  el.btnCloseGallery.addEventListener('click', () => el.galleryPanel.classList.add('hidden'));
+  el.btnTitle.addEventListener('click', showTitle);
+
+  el.btnSave.addEventListener('click', () => { SoundEngine.unlock(); openSavePanel('save'); });
+  el.btnLoad.addEventListener('click', () => openSavePanel('load'));
+  el.btnCloseSave.addEventListener('click', () => el.savePanel.classList.add('hidden'));
+
+  el.btnAuto.addEventListener('click', () => {
+    state.auto = !state.auto;
+    el.btnAuto.textContent = 'オート: ' + (state.auto ? 'ON' : 'OFF');
+    el.btnAuto.classList.toggle('active', state.auto);
+    if(state.auto && !state.typing && !state.pendingFeedback) advance();
+  });
+  // スキップボタン: もう一度押すと確実にOFFへ戻る（トグルの取りこぼしを防ぐため直接on/offを判定）
+  el.btnSkip.addEventListener('click', () => {
+    state.skip = !state.skip;
+    el.btnSkip.textContent = 'スキップ: ' + (state.skip ? 'ON' : 'OFF');
+    el.btnSkip.classList.toggle('active', state.skip);
+  });
+
+  el.fbGood.addEventListener('click', (e) => { e.stopPropagation(); submitFeedback(true); });
+  el.fbBad.addEventListener('click', (e) => { e.stopPropagation(); submitFeedback(false); });
+
+  el.btnLog.addEventListener('click', () => {
+    el.backlogList.innerHTML = '';
+    state.backlog.forEach(entry => {
+      const div = document.createElement('div'); div.className = 'backlog-entry';
+      if(entry.name){
+        const n = document.createElement('div'); n.className = 'backlog-name'; n.textContent = entry.name;
+        div.appendChild(n);
+      }
+      const t = document.createElement('div'); t.className = 'backlog-line'; t.textContent = entry.text;
+      div.appendChild(t);
+      el.backlogList.appendChild(div);
+    });
+    el.backlogPanel.classList.remove('hidden');
+  });
+  el.btnCloseLog.addEventListener('click', () => el.backlogPanel.classList.add('hidden'));
+
+  document.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' || e.code === 'Enter'){
+      if(!anyOverlayOpen() && !state.uiHidden) advance();
+    }
+    if(e.key.toLowerCase() === 'h' && !anyOverlayOpen()){
+      setUiHidden(!state.uiHidden);
+    }
+  });
+
+  // 2本指タップでテキスト欄の表示/非表示を切り替え
+  el.game.addEventListener('touchstart', (e) => {
+    if(e.touches && e.touches.length === 2){
+      e.preventDefault();
+      if(anyOverlayOpen()) return;
+      setUiHidden(!state.uiHidden);
+    }
+  }, { passive: false });
+
+  // ---- 起動時初期化 ----
+  loadAssets();
+  loadScenario();
+  loadGameMode();
+  loadTagCategories();
+  loadAllHubs();
+  loadReadHistory();
+  ensureCoreScenes();
+  loadGalleryUnlocks();
+  loadOptions();
+  loadSlotCount();
+  applyOptionsToEngine();
+  updateTitleContinueButton();
+  initDevUiVisibility();
+})();
+</script>
+</body>
+</html>
