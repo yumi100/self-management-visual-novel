@@ -15,12 +15,15 @@
     --line:rgba(232,178,92,0.35);
     --pink:#d4537e;
     --dev:#5ee6a8;
+    /* ゲーム本編用フォント。開発者パネル(JetBrains Mono)には適用されない。開発者パネル「アセット」タブから変更可能。 */
+    --font-body:'Zen Kaku Gothic New', sans-serif;
+    --font-heading:'Shippori Mincho', serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     width:100%; height:100vh; background:#000;
-    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-family:var(--font-body);
     overflow:hidden; display:flex; align-items:center; justify-content:center;
   }
   #game{
@@ -64,6 +67,12 @@
     background:radial-gradient(ellipse at 50% 30%, #1a2140 0%, #05070d 75%);
   }
   #titleScreen.hidden{display:none;}
+  #titleBgLayer{
+    position:absolute; inset:0; z-index:0;
+    background-size:cover; background-position:center; opacity:0; transition:opacity 0.6s ease;
+  }
+  #titleBgLayer.has-image{opacity:0.55;} /* ロゴ・ボタンの視認性を保つため控えめな不透明度にする */
+  #titleScreen > *:not(#titleBgLayer){ position:relative; z-index:1; }
   .dev-badge{
     position:absolute; top:14px; left:14px; z-index:55;
     font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--dev);
@@ -72,18 +81,18 @@
   }
   .dev-badge.hidden{display:none;}
   .game-logo{
-    font-family:'Shippori Mincho', serif; font-weight:700;
+    font-family:var(--font-heading); font-weight:700;
     font-size:clamp(26px,5.5vw,48px); color:var(--text-main);
     letter-spacing:0.15em; text-shadow:0 0 20px rgba(232,178,92,0.5); margin:0;
   }
   .game-logo-sub{
-    font-family:'Shippori Mincho', serif; font-size:12px; color:var(--accent-soft);
+    font-family:var(--font-heading); font-size:12px; color:var(--accent-soft);
     letter-spacing:0.35em; margin:8px 0 34px;
   }
   .title-menu{display:flex; flex-direction:column; gap:11px; width:230px;}
   .title-btn{
     background:transparent; border:1px solid var(--line); color:var(--text-main);
-    font-family:'Shippori Mincho', serif; font-size:14.5px; letter-spacing:0.18em;
+    font-family:var(--font-heading); font-size:14.5px; letter-spacing:0.18em;
     padding:11px 0; cursor:pointer; transition:all 0.25s ease;
   }
   .title-btn:hover{background:rgba(232,178,92,0.1); border-color:var(--accent); letter-spacing:0.26em;}
@@ -115,13 +124,13 @@
   .sprite-fallback{
     width:240px; height:400px; border-radius:120px 120px 0 0;
     display:flex; align-items:center; justify-content:center;
-    font-family:'Shippori Mincho', serif; font-size:14px; color:var(--text-sub);
+    font-family:var(--font-heading); font-size:14px; color:var(--text-sub);
     border:1px solid rgba(255,255,255,0.08); background:rgba(124,143,214,0.06);
   }
 
   /* ---------- status HUD (affection: dev only) ---------- */
   #statusHud{
-    position:absolute; top:12px; left:14px; z-index:30;
+    position:absolute; top:46px; left:14px; z-index:30;
     display:flex; flex-direction:column; gap:6px;
     opacity:0; transition:opacity 0.3s ease; pointer-events:none;
   }
@@ -146,7 +155,7 @@
   .icon-btn{
     background:rgba(11,14,23,0.75); border:1px solid var(--line); color:var(--text-sub);
     font-size:11px; letter-spacing:0.1em; padding:6px 10px; cursor:pointer;
-    font-family:'Zen Kaku Gothic New', sans-serif; transition:all 0.2s ease;
+    font-family:var(--font-body); transition:all 0.2s ease;
   }
   .icon-btn:hover{color:var(--accent); border-color:var(--accent);}
   .icon-btn.active{color:var(--bg-deep); border-color:var(--accent); background:var(--accent);}
@@ -171,7 +180,7 @@
   }
   #game.ui-hidden #hiddenHint{opacity:0.8;}
   #nameTag{
-    display:inline-block; font-family:'Shippori Mincho', serif; font-weight:700;
+    display:inline-block; font-family:var(--font-heading); font-weight:700;
     font-size:15px; color:var(--bg-deep); background:var(--accent);
     padding:4px 18px; margin-bottom:10px; clip-path:polygon(0 0,100% 0,94% 100%,0% 100%);
   }
@@ -195,7 +204,7 @@
   #choiceLayer.hidden{display:none;}
   .choice-btn{
     background:rgba(18,23,42,0.9); border:1px solid var(--line); color:var(--text-main);
-    font-family:'Zen Kaku Gothic New', sans-serif; font-size:14px; padding:13px 28px;
+    font-family:var(--font-body); font-size:14px; padding:13px 28px;
     min-width:360px; max-width:520px; cursor:pointer; transition:all 0.2s ease;
   }
   .choice-btn:hover{border-color:var(--accent); background:rgba(232,178,92,0.12); transform:translateX(4px);}
@@ -220,7 +229,7 @@
   /* ---------- backlog ---------- */
   #backlogPanel{position:absolute; inset:0; z-index:60; background:rgba(5,7,13,0.97); padding:36px 46px; overflow-y:auto;}
   #backlogPanel.hidden{display:none;}
-  #backlogPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  #backlogPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .backlog-entry{margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;}
   .backlog-name{color:var(--accent-soft); font-size:12px; margin-bottom:4px;}
   .backlog-line{color:var(--text-main); font-size:13.5px; line-height:1.7;}
@@ -230,7 +239,7 @@
   /* ---------- save/load ---------- */
   #savePanel{position:absolute; inset:0; z-index:70; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
   #savePanel.hidden{display:none;}
-  #savePanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
+  #savePanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
   .slot-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
   .save-slot{border:1px solid var(--line); background:rgba(18,23,42,0.7); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
   .save-slot:hover{border-color:var(--accent); background:rgba(232,178,92,0.08);}
@@ -248,7 +257,7 @@
   /* ---------- CG gallery ---------- */
   #galleryPanel{position:absolute; inset:0; z-index:65; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
   #galleryPanel.hidden{display:none;}
-  #galleryPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  #galleryPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .gallery-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
   .gallery-cell{aspect-ratio:16/9; border:1px solid var(--line); background:#0b0e17 center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
   .gallery-cell.locked{filter:brightness(0.25); cursor:default;}
@@ -257,7 +266,7 @@
   /* ---------- options panel ---------- */
   #optionsPanel{position:absolute; inset:0; z-index:75; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
   #optionsPanel.hidden{display:none;}
-  #optionsPanel h3{font-family:'Shippori Mincho', serif; color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
+  #optionsPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
   .opt-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06);}
   .opt-label{font-size:13px; color:var(--text-main); min-width:150px;}
   .opt-control{display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end;}
@@ -662,6 +671,36 @@
         <h4 style="margin-top:20px;">CGギャラリー</h4>
         <div id="devCgList"></div>
         <button class="dev-mini-btn" id="btnAddCg">＋ CG追加</button>
+
+        <h4 style="margin-top:20px;">タイトル画面</h4>
+        <p class="dev-status-line">背景・BGMは上の「背景」「BGM」に登録済みのキーから選べます。「（未設定）」のままなら今まで通りの見た目・無音になります。</p>
+        <div class="dev-field-row">
+          <label>タイトル背景</label>
+          <select id="titleBgSelect"></select>
+        </div>
+        <div class="dev-field-row">
+          <label>タイトルBGM</label>
+          <select id="titleBgmSelect"></select>
+        </div>
+
+        <h4 style="margin-top:20px;">フォント</h4>
+        <p class="dev-status-line">
+          ゲーム本編で使われる2種類のフォントを変更できます（開発者パネル自体のフォントは対象外です）。
+          CSSの <code>font-family</code> に渡せる値をそのまま入力してください（例: <code>'Noto Sans JP', sans-serif</code>）。
+          Web上のフォントを使う場合は、別途 <code>@import</code> 等でそのフォントを読み込む必要があります。
+        </p>
+        <div class="dev-field-row">
+          <label>本文用フォント</label>
+          <input type="text" id="fontBodyInput" placeholder="'Zen Kaku Gothic New', sans-serif">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">セリフ・地の文・ボタンなど、ゲーム全体の基本フォント。</p>
+        <div class="dev-field-row">
+          <label>見出し用フォント</label>
+          <input type="text" id="fontHeadingInput" placeholder="'Shippori Mincho', serif">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトルロゴ・各パネルの見出し・選択肢ボタンなどに使われます。</p>
+        <button class="dev-mini-btn" id="btnApplyFonts">フォントを適用</button>
+        <button class="dev-mini-btn" id="btnResetFonts">初期値に戻す</button>
       </div>
 
       <div class="dev-section" data-section="save">
@@ -737,6 +776,7 @@
   </div>
 
   <div id="titleScreen">
+    <div id="titleBgLayer"></div>
     <p class="game-logo">星屑ノベル</p>
     <p class="game-logo-sub">S T A R D U S T &nbsp; N O V E L</p>
     <div class="title-menu">
@@ -814,9 +854,16 @@
       const source = c.createBufferSource();
       source.buffer = buf; source.connect(seGain); source.start(0);
     }
+    function stopBgm(){
+      const c = ensureCtx(); if(!c || !currentBgmSource) return;
+      const oldGain = currentBgmGainNode, oldSource = currentBgmSource;
+      try{ oldGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.6); }catch(e){}
+      setTimeout(() => { try{ oldSource.stop(); }catch(e){} }, 650);
+      currentBgmSource = null; currentBgmGainNode = null;
+    }
     function setBgmVolume(v){ if(bgmGain) bgmGain.gain.value = v; }
     function setSeVolume(v){ if(seGain) seGain.gain.value = v; }
-    return { unlock, playBgm, playSe, setBgmVolume, setSeVolume };
+    return { unlock, playBgm, stopBgm, playSe, setBgmVolume, setSeVolume };
   })();
 
   // ============================================================
@@ -1041,6 +1088,11 @@
   };
   let bgmList = { rooftop_theme: "", classroom_theme: "", ending_theme: "" };
   let seList = { select: "", type: "", unlock: "", feedback_good: "", feedback_bad: "" };
+  // タイトル画面専用の背景/BGM設定。値は backgrounds / bgmList のキー名を指す（空なら未設定＝今まで通りの見た目）。
+  let titleConfig = { bgKey: "", bgmKey: "" };
+  // ゲーム本編で使われる2種のフォント。body: 通常セリフ・地の文・UI全般。heading: タイトルロゴ・見出し・ボタン等。
+  // 開発者パネルのフォント（JetBrains Mono）はツール内部の表示なので対象外。
+  let fontConfig = { body: "'Zen Kaku Gothic New', sans-serif", heading: "'Shippori Mincho', serif" };
 
   function loadAssets(){
     try{
@@ -1057,16 +1109,26 @@
       }
       if(data.bgmList) bgmList = data.bgmList;
       if(data.seList) seList = data.seList;
+      if(data.titleConfig) titleConfig = Object.assign(titleConfig, data.titleConfig);
+      if(data.fontConfig) fontConfig = Object.assign(fontConfig, data.fontConfig);
     }catch(e){}
     // MAIN_CHAR は物語の中核キャラなので、誤って削除されていた場合は復元する
     if(!characters[MAIN_CHAR]){
       characters[MAIN_CHAR] = { name: 'アカリ', img: '' };
     }
+    applyFontConfig();
   }
   function persistAssets(){
     try{
-      localStorage.setItem(ASSETS_KEY, JSON.stringify({ backgrounds, characters, cgGallery, bgmList, seList }));
+      localStorage.setItem(ASSETS_KEY, JSON.stringify({ backgrounds, characters, cgGallery, bgmList, seList, titleConfig, fontConfig }));
     }catch(e){}
+  }
+  // fontConfigの内容をCSS変数経由で実際の画面に反映する。
+  // ハードコードされた font-family を全箇所書き換える代わりに、CSS変数 --font-body / --font-heading を
+  // ページ全体のfont-familyの基点にしておき、ここで値を差し替えるだけで済むようにする。
+  function applyFontConfig(){
+    document.documentElement.style.setProperty('--font-body', fontConfig.body);
+    document.documentElement.style.setProperty('--font-heading', fontConfig.heading);
   }
 
   // ============================================================
@@ -1327,7 +1389,8 @@
    'slotCountMinus','slotCountPlus','devTagCategoryList','btnAddTagCategory',
    'scoreCharSelect','scoreSceneSelect','scoreTableWrap','scoreNewTags','scoreNewChoice','scoreNewScore','btnScoreAdd','scoreStatus',
    'guiLabelList','btnGuiAddLabel','guiCurrentLabelName','btnGuiAddRow','guiRowTableBody','guiScenarioStatus',
-   'guiSubEditorOverlay','guiSubEditorTitle','guiSubEditorBody','btnGuiSubEditorClose'
+   'guiSubEditorOverlay','guiSubEditorTitle','guiSubEditorBody','btnGuiSubEditorClose',
+   'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','btnApplyFonts','btnResetFonts','titleBgLayer'
   ].forEach(id => { el[id] = document.getElementById(id); });
   const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
 
@@ -1606,9 +1669,9 @@
     hub.updateCoreState({ affection: next, mood: mood || hub.coreState.mood });
     updateStatusHud();
   }
+  const statusHudRows = {}; // charKey -> { row, fill, moodTag } のDOM参照キャッシュ
   function updateStatusHud(){
-    if(!IS_DEV){ el.statusHud.classList.remove('show'); el.statusHud.innerHTML = ''; return; }
-    el.statusHud.innerHTML = '';
+    if(!IS_DEV){ el.statusHud.classList.remove('show'); el.statusHud.innerHTML = ''; Object.keys(statusHudRows).forEach(k => delete statusHudRows[k]); return; }
     // HUDに表示するキャラ一覧は「これまでhubが作られた（＝一度でも登場・会話した）キャラ」から取る。
     const keys = Object.keys(hubs);
     if(keys.length === 0){ el.statusHud.classList.remove('show'); return; }
@@ -1616,13 +1679,24 @@
       const def = characters[charKey]; if(!def) return;
       const val = getAffection(charKey);
       const hub = getHub(charKey);
-      const row = document.createElement('div');
-      row.className = 'status-row';
-      row.innerHTML =
-        '<span class="status-name">' + def.name + '</span>' +
-        '<span class="status-bar-track"><span class="status-bar-fill" style="width:' + val + '%"></span></span>' +
-        '<span class="status-mood-tag">' + hub.coreState.mood + '</span>';
-      el.statusHud.appendChild(row);
+      let refs = statusHudRows[charKey];
+      if(!refs){
+        // 初回だけDOM要素を新規作成する。以後はこの同じ要素のプロパティだけを書き換える
+        // （innerHTMLで毎回作り直すと、width指定のtransitionが正しく効かず、
+        //  更新が画面に反映されないように見える不具合の原因になっていたため）。
+        const row = document.createElement('div'); row.className = 'status-row';
+        const nameSpan = document.createElement('span'); nameSpan.className = 'status-name';
+        const track = document.createElement('span'); track.className = 'status-bar-track';
+        const fill = document.createElement('span'); fill.className = 'status-bar-fill'; fill.style.width = '0%';
+        track.appendChild(fill);
+        const moodTag = document.createElement('span'); moodTag.className = 'status-mood-tag';
+        nameSpan.textContent = def.name;
+        row.appendChild(nameSpan); row.appendChild(track); row.appendChild(moodTag);
+        el.statusHud.appendChild(row);
+        refs = statusHudRows[charKey] = { row, fill, moodTag };
+      }
+      refs.fill.style.width = val + '%';
+      refs.moodTag.textContent = hub.coreState.mood;
     });
     el.statusHud.classList.add('show');
   }
@@ -1702,20 +1776,27 @@
   }
 
   // 「スキップ」= オートの高速版。既読の行は待ち時間なしで即座に流し、未読の行は普通に表示して止まる。
-  // 選択肢待ちの行（line.choices && !line.aiChoice）は、advance()側で自動送りが止まる仕組みに乗るため、ここでは何もしない。
+  // 重要: 行の完了処理（選択肢の描画・フィードバックUI表示・オート予約）は必ず finishTyping() 側に一本化する。
+  // ここで state.typing だけを false にして finishTyping を経由しないと、
+  // renderChoices() が呼ばれないまま選択肢待ちの体裁になり、選択肢ボタンが出ないのに
+  // advance() 側は「選択肢待ちだから進めない」ガードで弾き続ける…という進行不能バグになる
+  // （実際に発生していた不具合）。
   function maybeAutoAdvanceIfRead(wasRead){
     if(!state.skip) return;
     if(!wasRead) return; // 未読なら通常表示のまま止まる（スキップは既読のみをすっ飛ばす）
-    // タイプ表示自体は一瞬で終わらせ、直後に自動で次へ進める。
-    // pendingFeedbackは showLine 側で既に null にしている（既読時）ので、ここでは進行を妨げない。
+    // タイピングを打ち切って、通常の完了処理（finishTyping）を通常通り実行させる。
+    // pendingFeedbackは showLine 側で既に null にしている（既読時）ので、フィードバックUIは出ない。
     clearTimeout(typeTimer);
     state.typing = false;
-    el.lineText.textContent = state.currentCleanText;
-    el.continueMark.classList.remove('hidden');
-    // 選択肢待ちの行では advance() 自体が何もしないため、プレイヤー操作を待つ（自動送りしない）。
-    const lines = currentLines();
-    const line = lines[state.index];
-    if(line && line.choices && !line.aiChoice) return;
+    finishTyping(state.currentCleanText, state.currentTags, false, state.currentHasSpeaker);
+    // finishTypingが選択肢を描画した場合は、プレイヤーの操作を待つ（自動送りしない）。
+    if(!el.choiceLayer.classList.contains('hidden')) return;
+    // フィードバック待ちになった場合も自動送りしない（既読時はここに来ないはずだが念のため）。
+    if(state.pendingFeedback) return;
+    // state.auto も同時にONの場合、finishTyping側が既に1100ms後のautoTimerを予約している。
+    // ここでの30ms後の即時送りと二重に advance() が走ると、意図しない行まで一気に飛ぶ事故になるため、
+    // オート側の予約は破棄してスキップ側の即時送りに一本化する。
+    clearTimeout(autoTimer);
     setTimeout(advance, 30); // 一瞬の間だけ置いて連続送りが見えるようにする
   }
 
@@ -1896,12 +1977,31 @@
     el.bgLayer.classList.remove('has-image'); el.bgLayer.style.backgroundImage = '';
     state.bgKey = null;
   }
+  // titleConfigに設定された背景/BGMをタイトル画面に反映する。
+  // 未設定（空文字）の場合は何もしない＝これまで通りのグラデーション背景・無音のまま。
+  function applyTitleScreenAssets(){
+    const bgUrl = titleConfig.bgKey && backgrounds[titleConfig.bgKey] ? backgrounds[titleConfig.bgKey] : '';
+    if(bgUrl){
+      el.titleBgLayer.style.backgroundImage = "url('" + bgUrl + "')";
+      el.titleBgLayer.classList.add('has-image');
+    } else {
+      el.titleBgLayer.style.backgroundImage = '';
+      el.titleBgLayer.classList.remove('has-image');
+    }
+    const bgmUrl = titleConfig.bgmKey && bgmList[titleConfig.bgmKey] ? bgmList[titleConfig.bgmKey] : '';
+    if(bgmUrl){
+      SoundEngine.playBgm(bgmUrl);
+    } else {
+      SoundEngine.stopBgm();
+    }
+  }
   function showTitle(){
     stopEndlessMode();
     el.titleScreen.classList.remove('hidden');
     clearTimeout(autoTimer);
     hideFeedbackBar();
     updateTitleContinueButton();
+    applyTitleScreenAssets();
   }
   function startGame(){
     try{
@@ -2905,7 +3005,54 @@
       const imgInp = textInput(cgGallery[key].img, v => { cgGallery[key].img = v; persistAssets(); });
       makeAssetRow(el.devCgList, key, [labelInp, imgInp], () => { delete cgGallery[key]; persistAssets(); refreshAssetLists(); });
     });
+    refreshTitleAssetSelects();
+    el.fontBodyInput.value = fontConfig.body;
+    el.fontHeadingInput.value = fontConfig.heading;
   }
+  // タイトル画面の背景/BGM選択肢を、登録済みの backgrounds / bgmList のキーから作る。
+  function refreshTitleAssetSelects(){
+    function fillSelect(selectEl, dict, currentValue){
+      selectEl.innerHTML = '';
+      const emptyOpt = document.createElement('option');
+      emptyOpt.value = ''; emptyOpt.textContent = '（未設定）';
+      selectEl.appendChild(emptyOpt);
+      Object.keys(dict).forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key; opt.textContent = key;
+        if(key === currentValue) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    }
+    fillSelect(el.titleBgSelect, backgrounds, titleConfig.bgKey);
+    fillSelect(el.titleBgmSelect, bgmList, titleConfig.bgmKey);
+  }
+  el.titleBgSelect && el.titleBgSelect.addEventListener('change', () => {
+    titleConfig.bgKey = el.titleBgSelect.value;
+    persistAssets();
+    applyTitleScreenAssets();
+  });
+  el.titleBgmSelect && el.titleBgmSelect.addEventListener('change', () => {
+    titleConfig.bgmKey = el.titleBgmSelect.value;
+    persistAssets();
+    // BGMはユーザー操作（クリック等）を経ないと再生できないブラウザがあるため、
+    // ここでは即再生せず次回タイトル表示時に反映されるようにする。
+    showToast('タイトルBGMを更新しました（次にタイトルへ戻ると反映されます）');
+  });
+  el.btnApplyFonts && el.btnApplyFonts.addEventListener('click', () => {
+    fontConfig.body = el.fontBodyInput.value.trim() || fontConfig.body;
+    fontConfig.heading = el.fontHeadingInput.value.trim() || fontConfig.heading;
+    persistAssets();
+    applyFontConfig();
+    showToast('フォントを適用しました');
+  });
+  el.btnResetFonts && el.btnResetFonts.addEventListener('click', () => {
+    fontConfig = { body: "'Zen Kaku Gothic New', sans-serif", heading: "'Shippori Mincho', serif" };
+    el.fontBodyInput.value = fontConfig.body;
+    el.fontHeadingInput.value = fontConfig.heading;
+    persistAssets();
+    applyFontConfig();
+    showToast('フォントを初期値に戻しました');
+  });
   el.btnAddChar.addEventListener('click', () => {
     const key = prompt('キャラのキー名（英数字、例: yui）');
     if(!key) return;
@@ -3073,6 +3220,7 @@
   loadSlotCount();
   applyOptionsToEngine();
   updateTitleContinueButton();
+  applyTitleScreenAssets();
   initDevUiVisibility();
 })();
 </script>
