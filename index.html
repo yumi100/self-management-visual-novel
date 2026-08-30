@@ -20,6 +20,13 @@
     --panel-bg-strong:color-mix(in srgb, var(--bg-deep) 92%, black);
     /* --bg-deepの上に乗せる文字色。背景が明るいか暗いかで自動的に黒系/白系へ切り替わる（デフォルトはtext-mainのまま）。 */
     --text-on-bg:var(--text-main);
+    /* パネル背景（--panel-bg系）の上に乗る「薄い/補助的な」文字・線の色。--bg-deepの明暗に応じてJS側(applyThemeConfig)が
+       自動的に明るいグレー系/暗いグレー系へ切り替える。デフォルト(暗い背景)では従来通り#a9adc4のまま変化しない。
+       スライダーの未再生トラックやロック表示のオーバーレイもこの明暗判定に合わせて調整される。 */
+    --ui-track:rgba(255,255,255,0.15);
+    --ui-divider:rgba(255,255,255,0.06);
+    --ui-divider-strong:rgba(255,255,255,0.08);
+    --ui-lock-overlay:rgba(0,0,0,0.55);
     /* ゲーム内の枠線の太さ・パネル見出しの太字設定。開発者パネルからテーマとして変更可能。 */
     --border-width:1px;
     --heading-weight:700;
@@ -116,7 +123,8 @@
   .title-btn{
     background:var(--btn-fill); border:var(--border-width) solid var(--line); color:var(--text-main);
     font-family:var(--font-heading); font-weight:var(--heading-weight); font-size:14.5px; letter-spacing:0.18em;
-    padding:11px 0; cursor:pointer; transition:all 0.25s ease;
+    padding:11px 0; cursor:pointer;
+    transition:background-color 0.25s ease, border-color 0.25s ease, letter-spacing 0.25s ease;
   }
   .title-btn:hover{background:color-mix(in srgb, var(--accent) 10%, transparent); border-color:var(--accent); letter-spacing:0.26em;}
   .title-btn.primary{border-color:var(--accent); color:var(--accent);}
@@ -164,7 +172,7 @@
     padding:5px 10px; font-size:11px; color:var(--text-sub);
   }
   .status-name{color:var(--text-main); min-width:44px;}
-  .status-bar-track{width:90px; height:5px; background:rgba(255,255,255,0.08); position:relative;}
+  .status-bar-track{width:90px; height:5px; background:var(--ui-divider-strong); position:relative;}
   .status-bar-fill{height:100%; background:var(--pink); transition:width 0.4s ease; width:0%;}
   .status-mood-tag{font-size:9.5px; color:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent-soft) 40%, transparent); padding:1px 6px; letter-spacing:0.05em;}
 
@@ -253,7 +261,7 @@
   #backlogPanel{position:absolute; inset:0; z-index:60; background:var(--panel-bg); padding:36px 46px; overflow-y:auto;}
   #backlogPanel.hidden{display:none;}
   #backlogPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
-  .backlog-entry{margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;}
+  .backlog-entry{margin-bottom:14px; border-bottom:1px solid var(--ui-divider); padding-bottom:10px;}
   .backlog-name{color:var(--accent-soft); font-size:12px; margin-bottom:4px;}
   .backlog-line{color:var(--text-main); font-size:13.5px; line-height:1.7;}
   .close-panel{position:absolute; top:18px; right:22px; background:none; border:none; color:var(--text-sub); font-size:22px; cursor:pointer;}
@@ -267,7 +275,7 @@
   .save-slot{border:var(--border-width) solid var(--line); background:var(--panel-bg-soft); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
   .save-slot:hover{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent);}
   .save-slot.empty{color:var(--text-sub); align-items:center; justify-content:center; min-height:100px; font-size:12.5px;}
-  .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg, color-mix(in srgb, var(--bg-deep) 60%, var(--accent-soft)), var(--bg-deep)); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,0.06);}
+  .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg, color-mix(in srgb, var(--bg-deep) 60%, var(--accent-soft)), var(--bg-deep)); background-size:cover; background-position:center; border:1px solid var(--ui-divider);}
   .slot-meta{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
   .slot-meta b{color:var(--text-main); font-weight:500; display:block; font-size:12px; margin-bottom:2px;}
   .slot-actions{display:flex; gap:6px; margin-top:2px;}
@@ -283,17 +291,22 @@
   #galleryPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .gallery-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
   .gallery-cell{aspect-ratio:16/9; border:var(--border-width) solid var(--line); background:var(--bg-deep) center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
-  .gallery-cell.locked{filter:brightness(0.25); cursor:default;}
-  .gallery-cell span{font-size:10px; color:var(--text-sub);}
+  /* 未解放CGの表示。brightness()フィルターだとbgDeepが明るいテーマの時に暗くなりすぎて見づらいため、
+     常に一定濃度の暗いオーバーレイ(--ui-lock-overlay)を重ねる方式にしている。 */
+  .gallery-cell.locked{cursor:default;}
+  .gallery-cell.locked::before{
+    content:''; position:absolute; inset:0; background:var(--ui-lock-overlay); pointer-events:none;
+  }
+  .gallery-cell span{font-size:10px; color:var(--text-sub); position:relative; z-index:1;}
 
   /* ---------- options panel ---------- */
   #optionsPanel{position:absolute; inset:0; z-index:75; background:var(--panel-bg); padding:34px 42px; overflow-y:auto;}
   #optionsPanel.hidden{display:none;}
   #optionsPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
-  .opt-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06);}
+  .opt-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--ui-divider);}
   .opt-label{font-size:13px; color:var(--text-main); min-width:150px;}
   .opt-control{display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end;}
-  .opt-control input[type="range"]{-webkit-appearance:none; width:180px; height:3px; background:rgba(255,255,255,0.15); outline:none; cursor:pointer;}
+  .opt-control input[type="range"]{-webkit-appearance:none; width:180px; height:3px; background:var(--ui-track); outline:none; cursor:pointer;}
   .opt-control input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer;}
   .opt-control input[type="range"]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;}
   .opt-value{font-size:11px; color:var(--text-sub); min-width:34px; text-align:right;}
@@ -809,7 +822,7 @@
           <label>背景色（最深部）</label>
           <input type="color" id="themeBgDeepInput">
         </div>
-        <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色・明るい色のどちらでも使えます。明るい色を選んだ場合、名前タグなどアクセント色の上に乗る文字は自動的に黒系に切り替わります（本文色そのものは変わりません）。</p>
+        <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色・明るい色のどちらでも使えます。明るい色を選んだ場合、名前タグなどアクセント色の上に乗る文字は自動的に黒系に切り替わります（本文色そのものは変わりません）。またスライダーのトラック色・区切り線・CGギャラリーの未解放オーバーレイなども、背景の明暗に応じて自動的にコントラストが調整されます。</p>
 
         <h4 style="margin-top:18px;">ボタンの塗りつぶし</h4>
         <div class="dev-field-row">
@@ -832,7 +845,7 @@
             <option value="1">ベタ塗り</option>
           </select>
         </div>
-        <p class="dev-status-line" style="margin-top:-4px;">タイトル画面のボタン（はじめから・つづきから等）の塗りつぶしです。開発者パネル自体のボタンには影響しません。</p>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトル画面のボタン（はじめから・つづきから等）の塗りつぶしです。開発者パネル自体のボタンには影響しません。マウスを乗せた時の色の変化が急に見える場合は「濃さ」を下げると馴染みやすくなります。</p>
 
         <h4 style="margin-top:18px;">タイトルロゴの光彩効果</h4>
         <div class="dev-field-row">
@@ -1370,6 +1383,22 @@
     // 背景色（bgDeep）が明るい色なら、その上に乗る文字（アイコンボタンのactive状態・名前タグなど）を黒系にする。
     // 暗い背景ならtextMainをそのまま使う。これにより白背景テーマでも文字が読めなくなることを防ぐ。
     root.setProperty('--text-on-bg', isLightColor(themeConfig.bgDeep) ? '#1a1a1a' : themeConfig.textMain);
+    // 背景色（bgDeep）の明暗に応じて、パネル上の「薄い/補助的な」文字色や区切り線・トラック色を自動調整する。
+    // 暗い背景の場合は従来通りの値（デフォルトのまま見た目が変化しない）。明るい背景の場合のみ、
+    // 白飛びやコントラスト不足を避けるため暗めのグレー系に切り替える。
+    if(isLightColor(themeConfig.bgDeep)){
+      root.setProperty('--text-sub', '#6b6f80');
+      root.setProperty('--ui-track', 'rgba(0,0,0,0.15)');
+      root.setProperty('--ui-divider', 'rgba(0,0,0,0.08)');
+      root.setProperty('--ui-divider-strong', 'rgba(0,0,0,0.12)');
+      root.setProperty('--ui-lock-overlay', 'rgba(0,0,0,0.45)');
+    }else{
+      root.setProperty('--text-sub', '#a9adc4');
+      root.setProperty('--ui-track', 'rgba(255,255,255,0.15)');
+      root.setProperty('--ui-divider', 'rgba(255,255,255,0.06)');
+      root.setProperty('--ui-divider-strong', 'rgba(255,255,255,0.08)');
+      root.setProperty('--ui-lock-overlay', 'rgba(0,0,0,0.55)');
+    }
     // 通常ボタン（開発者パネル以外）の塗りつぶし。オフなら従来通り透明。
     root.setProperty('--btn-fill', themeConfig.btnFillEnabled
       ? 'color-mix(in srgb, ' + themeConfig.btnFillColor + ' ' + Math.round(themeConfig.btnFillAlpha * 100) + '%, transparent)'
