@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>星屑ノベル ― フル機能版 (Dev対応)</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Zen+Maru+Gothic:wght@400;500;700&family=Kiwi+Maru:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Yomogi&display=swap');
 
   :root{
     --bg-deep:#0b0e17;
@@ -726,15 +726,23 @@
           Web上のフォントを使う場合は、別途 <code>@import</code> 等でそのフォントを読み込む必要があります。
         </p>
         <div class="dev-field-row">
+          <label>本文プリセット</label>
+          <select id="fontBodyPreset"></select>
+        </div>
+        <div class="dev-field-row">
           <label>本文用フォント</label>
           <input type="text" id="fontBodyInput" placeholder="'Zen Kaku Gothic New', sans-serif">
         </div>
-        <p class="dev-status-line" style="margin-top:-4px;">セリフ・地の文・ボタンなど、ゲーム全体の基本フォント。</p>
+        <p class="dev-status-line" style="margin-top:-4px;">セリフ・地の文・ボタンなど、ゲーム全体の基本フォント。プリセットを選ぶと即適用されます。未登録フォントを使う場合は下の欄に直接入力してください。</p>
+        <div class="dev-field-row">
+          <label>見出しプリセット</label>
+          <select id="fontHeadingPreset"></select>
+        </div>
         <div class="dev-field-row">
           <label>見出し用フォント</label>
           <input type="text" id="fontHeadingInput" placeholder="'Shippori Mincho', serif">
         </div>
-        <p class="dev-status-line" style="margin-top:-4px;">タイトルロゴ・各パネルの見出し・選択肢ボタンなどに使われます。</p>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトルロゴ・各パネルの見出し・選択肢ボタンなどに使われます。プリセットを選ぶと即適用されます。未登録フォントを使う場合は下の欄に直接入力してください。</p>
         <button class="dev-mini-btn" id="btnApplyFonts">フォントを適用</button>
         <button class="dev-mini-btn" id="btnResetFonts">初期値に戻す</button>
       </div>
@@ -1133,6 +1141,16 @@
   // ゲーム本編で使われる2種のフォント。body: 通常セリフ・地の文・UI全般。heading: タイトルロゴ・見出し・ボタン等。
   // 開発者パネルのフォント（JetBrains Mono）はツール内部の表示なので対象外。
   let fontConfig = { body: "'Zen Kaku Gothic New', sans-serif", heading: "'Shippori Mincho', serif" };
+  // あらかじめ@importで読み込んでおいたフォントのプリセット一覧。
+  // 開発者パネルの「本文プリセット」「見出しプリセット」プルダウンの選択肢として使う。
+  const FONT_PRESETS = [
+    { label: 'Zen Kaku Gothic New', value: "'Zen Kaku Gothic New', sans-serif" },
+    { label: 'Zen Maru Gothic',     value: "'Zen Maru Gothic', sans-serif" },
+    { label: 'Kiwi Maru',           value: "'Kiwi Maru', serif" },
+    { label: 'Noto Sans JP',        value: "'Noto Sans JP', sans-serif" },
+    { label: 'Shippori Mincho',     value: "'Shippori Mincho', serif" },
+    { label: 'Yomogi',              value: "'Yomogi', cursive" }
+  ];
 
   function loadAssets(){
     try{
@@ -1432,7 +1450,7 @@
    'scoreCharSelect','scoreSceneSelect','scoreTableWrap','scoreNewTags','scoreNewChoice','scoreNewScore','btnScoreAdd','scoreStatus',
    'guiLabelList','btnGuiAddLabel','guiCurrentLabelName','btnGuiAddRow','guiRowTableBody','guiScenarioStatus',
    'guiSubEditorOverlay','guiSubEditorTitle','guiSubEditorBody','btnGuiSubEditorClose',
-   'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','btnApplyFonts','btnResetFonts','titleBgLayer',
+   'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','fontBodyPreset','fontHeadingPreset','btnApplyFonts','btnResetFonts','titleBgLayer',
    'gameLogo','gameLogoSub',
    'titleLogoInput','titleLogoSubInput','titleBtnStartInput','titleBtnLoadInput','titleBtnGalleryInput','titleBtnOptionsInput',
    'btnApplyTitleTexts','btnResetTitleTexts'
@@ -3090,7 +3108,48 @@
     el.titleBtnOptionsInput.value = titleConfig.btnOptions;
     el.fontBodyInput.value = fontConfig.body;
     el.fontHeadingInput.value = fontConfig.heading;
+    refreshFontPresetSelects();
   }
+  // 本文/見出しのフォントプリセット<select>に選択肢を詰め、現在値がプリセットと一致すればそれを選択状態にする。
+  // プリセットに無い値（手入力されたもの）の場合は「（カスタム入力）」を選択状態にする。
+  function fillFontPresetSelect(selectEl, currentValue){
+    selectEl.innerHTML = '';
+    const customOpt = document.createElement('option');
+    customOpt.value = ''; customOpt.textContent = '（カスタム入力）';
+    selectEl.appendChild(customOpt);
+    let matched = false;
+    FONT_PRESETS.forEach(preset => {
+      const opt = document.createElement('option');
+      opt.value = preset.value; opt.textContent = preset.label;
+      if(preset.value === currentValue){ opt.selected = true; matched = true; }
+      selectEl.appendChild(opt);
+    });
+    if(!matched) customOpt.selected = true;
+  }
+  function refreshFontPresetSelects(){
+    if(!el.fontBodyPreset || !el.fontHeadingPreset) return;
+    fillFontPresetSelect(el.fontBodyPreset, fontConfig.body);
+    fillFontPresetSelect(el.fontHeadingPreset, fontConfig.heading);
+  }
+  // プリセット選択時は即適用・即保存する。空値（カスタム入力）が選ばれた場合は何もしない。
+  el.fontBodyPreset && el.fontBodyPreset.addEventListener('change', () => {
+    const v = el.fontBodyPreset.value;
+    if(!v) return;
+    fontConfig.body = v;
+    el.fontBodyInput.value = v;
+    persistAssets();
+    applyFontConfig();
+    showToast('本文用フォントを適用しました');
+  });
+  el.fontHeadingPreset && el.fontHeadingPreset.addEventListener('change', () => {
+    const v = el.fontHeadingPreset.value;
+    if(!v) return;
+    fontConfig.heading = v;
+    el.fontHeadingInput.value = v;
+    persistAssets();
+    applyFontConfig();
+    showToast('見出し用フォントを適用しました');
+  });
   // タイトル画面の背景/BGM選択肢を、登録済みの backgrounds / bgmList のキーから作る。
   function refreshTitleAssetSelects(){
     function fillSelect(selectEl, dict, currentValue){
@@ -3125,6 +3184,7 @@
     fontConfig.heading = el.fontHeadingInput.value.trim() || fontConfig.heading;
     persistAssets();
     applyFontConfig();
+    refreshFontPresetSelects();
     showToast('フォントを適用しました');
   });
   el.btnResetFonts && el.btnResetFonts.addEventListener('click', () => {
@@ -3133,6 +3193,7 @@
     el.fontHeadingInput.value = fontConfig.heading;
     persistAssets();
     applyFontConfig();
+    refreshFontPresetSelects();
     showToast('フォントを初期値に戻しました');
   });
   el.btnApplyTitleTexts && el.btnApplyTitleTexts.addEventListener('click', () => {
