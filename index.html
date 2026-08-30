@@ -23,6 +23,8 @@
     /* ゲーム内の枠線の太さ・パネル見出しの太字設定。開発者パネルからテーマとして変更可能。 */
     --border-width:1px;
     --heading-weight:700;
+    /* 通常ボタン（開発者パネル以外）の塗りつぶし色。開発者パネルの「テーマ/カラー」から変更可能。デフォルトは透明（枠線のみ）。 */
+    --btn-fill:transparent;
     --dev:#5ee6a8;
     /* 開発者パネル専用の配色。ゲーム本編のテーマ（アクセント色やフォント）を変更しても影響を受けない。 */
     --dev-text-main:#f1eee6;
@@ -112,7 +114,7 @@
   }
   .title-menu{display:flex; flex-direction:column; gap:11px; width:230px;}
   .title-btn{
-    background:transparent; border:var(--border-width) solid var(--line); color:var(--text-main);
+    background:var(--btn-fill); border:var(--border-width) solid var(--line); color:var(--text-main);
     font-family:var(--font-heading); font-weight:var(--heading-weight); font-size:14.5px; letter-spacing:0.18em;
     padding:11px 0; cursor:pointer; transition:all 0.25s ease;
   }
@@ -123,7 +125,7 @@
   .title-btn.dev:hover{background:rgba(94,230,168,0.12);}
   .title-btn.hidden{display:none;}
   .title-btn:disabled{opacity:0.32; cursor:default;}
-  .title-btn:disabled:hover{background:transparent; border-color:var(--line); letter-spacing:0.18em;}
+  .title-btn:disabled:hover{background:var(--btn-fill); border-color:var(--line); letter-spacing:0.18em;}
 
   /* ---------- characters ---------- */
   #charLayer{
@@ -809,6 +811,29 @@
         </div>
         <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色・明るい色のどちらでも使えます。明るい色を選んだ場合、名前タグなどアクセント色の上に乗る文字は自動的に黒系に切り替わります（本文色そのものは変わりません）。</p>
 
+        <h4 style="margin-top:18px;">ボタンの塗りつぶし</h4>
+        <div class="dev-field-row">
+          <label>塗りつぶしを使う</label>
+          <select id="themeBtnFillEnabled">
+            <option value="0">なし（枠線のみ・従来通り）</option>
+            <option value="1">色で塗りつぶす</option>
+          </select>
+        </div>
+        <div class="dev-field-row">
+          <label>塗りつぶし色</label>
+          <input type="color" id="themeBtnFillInput">
+        </div>
+        <div class="dev-field-row">
+          <label>塗りつぶしの濃さ</label>
+          <select id="themeBtnFillAlpha">
+            <option value="0.12">薄い</option>
+            <option value="0.3">標準</option>
+            <option value="0.6">濃い</option>
+            <option value="1">ベタ塗り</option>
+          </select>
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトル画面のボタン（はじめから・つづきから等）の塗りつぶしです。開発者パネル自体のボタンには影響しません。</p>
+
         <h4 style="margin-top:18px;">タイトルロゴの光彩効果</h4>
         <div class="dev-field-row">
           <label>光彩の色</label>
@@ -1265,7 +1290,9 @@
     accent:'#e8b25c', accentSoft:'#7c8fd6', pink:'#d4537e',
     textMain:'#f1eee6', bgDeep:'#0b0e17',
     logoGlowColor:'#e8b25c', logoGlowAlpha:0.5,
-    borderWidth:1, headingWeight:700
+    borderWidth:1, headingWeight:700,
+    // 通常ボタン（開発者パネル以外）の塗りつぶし。btnFillEnabledがfalseなら常に透明（従来通り）。
+    btnFillEnabled:false, btnFillColor:'#e8b25c', btnFillAlpha:0.3
   };
   let themeConfig = Object.assign({}, THEME_DEFAULT);
   // テーマプリセット一覧。開発者パネルの「テーマプリセット」プルダウンの選択肢として使う。
@@ -1343,6 +1370,10 @@
     // 背景色（bgDeep）が明るい色なら、その上に乗る文字（アイコンボタンのactive状態・名前タグなど）を黒系にする。
     // 暗い背景ならtextMainをそのまま使う。これにより白背景テーマでも文字が読めなくなることを防ぐ。
     root.setProperty('--text-on-bg', isLightColor(themeConfig.bgDeep) ? '#1a1a1a' : themeConfig.textMain);
+    // 通常ボタン（開発者パネル以外）の塗りつぶし。オフなら従来通り透明。
+    root.setProperty('--btn-fill', themeConfig.btnFillEnabled
+      ? 'color-mix(in srgb, ' + themeConfig.btnFillColor + ' ' + Math.round(themeConfig.btnFillAlpha * 100) + '%, transparent)'
+      : 'transparent');
   }
 
 
@@ -1613,7 +1644,8 @@
    'titleLogoInput','titleLogoSubInput','titleBtnStartInput','titleBtnLoadInput','titleBtnGalleryInput','titleBtnOptionsInput',
    'btnApplyTitleTexts','btnResetTitleTexts',
    'themePreset','themeAccentInput','themeAccentSoftInput','themePinkInput','themeTextMainInput','themeBgDeepInput',
-   'themeGlowColorInput','themeGlowStrength','themeBorderWidth','themeHeadingWeight','btnResetTheme'
+   'themeGlowColorInput','themeGlowStrength','themeBorderWidth','themeHeadingWeight','btnResetTheme',
+   'themeBtnFillEnabled','themeBtnFillInput','themeBtnFillAlpha'
   ].forEach(id => { el[id] = document.getElementById(id); });
   const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
 
@@ -3381,6 +3413,14 @@
     const weights = [400, 500, 700, 900];
     const nearestWeight = weights.reduce((a, b) => Math.abs(b - themeConfig.headingWeight) < Math.abs(a - themeConfig.headingWeight) ? b : a);
     el.themeHeadingWeight.value = String(nearestWeight);
+    // ボタン塗りつぶし設定を反映
+    if(el.themeBtnFillEnabled){
+      el.themeBtnFillEnabled.value = themeConfig.btnFillEnabled ? '1' : '0';
+      el.themeBtnFillInput.value = themeConfig.btnFillColor;
+      const alphas = [0.12, 0.3, 0.6, 1];
+      const nearestAlpha = alphas.reduce((a, b) => Math.abs(b - themeConfig.btnFillAlpha) < Math.abs(a - themeConfig.btnFillAlpha) ? b : a);
+      el.themeBtnFillAlpha.value = String(nearestAlpha);
+    }
     refreshThemePresetSelect();
   }
   function refreshThemePresetSelect(){
@@ -3426,6 +3466,19 @@
   bindThemeColorInput(el.themeTextMainInput, 'textMain', '本文色');
   bindThemeColorInput(el.themeBgDeepInput, 'bgDeep', '背景色');
   bindThemeColorInput(el.themeGlowColorInput, 'logoGlowColor', '光彩の色');
+  bindThemeColorInput(el.themeBtnFillInput, 'btnFillColor', 'ボタン塗りつぶし色');
+  el.themeBtnFillEnabled && el.themeBtnFillEnabled.addEventListener('change', () => {
+    themeConfig.btnFillEnabled = el.themeBtnFillEnabled.value === '1';
+    persistAssets();
+    applyThemeConfig();
+    showToast('ボタンの塗りつぶし設定を変更しました');
+  });
+  el.themeBtnFillAlpha && el.themeBtnFillAlpha.addEventListener('change', () => {
+    themeConfig.btnFillAlpha = parseFloat(el.themeBtnFillAlpha.value);
+    persistAssets();
+    applyThemeConfig();
+    showToast('ボタンの塗りつぶしの濃さを変更しました');
+  });
   el.themeGlowStrength && el.themeGlowStrength.addEventListener('change', () => {
     themeConfig.logoGlowAlpha = parseFloat(el.themeGlowStrength.value);
     persistAssets();
