@@ -14,7 +14,23 @@
     --text-sub:#a9adc4;
     --line:color-mix(in srgb, var(--accent) 35%, transparent);
     --pink:#d4537e;
+    /* パネル/ダイアログ背景（バックログ・セーブ・ギャラリー・設定など）。--bg-deepの明暗に応じて自動で濃淡が決まる。 */
+    --panel-bg:color-mix(in srgb, var(--bg-deep) 97%, black);
+    --panel-bg-soft:color-mix(in srgb, var(--bg-deep) 80%, transparent);
+    --panel-bg-strong:color-mix(in srgb, var(--bg-deep) 92%, black);
+    /* --bg-deepの上に乗せる文字色。背景が明るいか暗いかで自動的に黒系/白系へ切り替わる（デフォルトはtext-mainのまま）。 */
+    --text-on-bg:var(--text-main);
+    /* ゲーム内の枠線の太さ・パネル見出しの太字設定。開発者パネルからテーマとして変更可能。 */
+    --border-width:1px;
+    --heading-weight:700;
     --dev:#5ee6a8;
+    /* 開発者パネル専用の配色。ゲーム本編のテーマ（アクセント色やフォント）を変更しても影響を受けない。 */
+    --dev-text-main:#f1eee6;
+    --dev-text-sub:#a9adc4;
+    --dev-accent:#e8b25c;
+    --dev-accent-soft:#7c8fd6;
+    --dev-pink:#d4537e;
+    --dev-line:rgba(232,178,92,0.35);
     /* タイトルロゴの光彩（グロー）色。デフォルトはaccentと同色。強さは --logo-glow-blur / --logo-glow-alpha で調整。 */
     --logo-glow:var(--accent);
     --logo-glow-blur:20px;
@@ -85,7 +101,7 @@
   }
   .dev-badge.hidden{display:none;}
   .game-logo{
-    font-family:var(--font-heading); font-weight:700;
+    font-family:var(--font-heading); font-weight:var(--heading-weight);
     font-size:clamp(26px,5.5vw,48px); color:var(--text-main);
     letter-spacing:0.15em; margin:0;
     text-shadow:0 0 var(--logo-glow-blur) color-mix(in srgb, var(--logo-glow) calc(var(--logo-glow-alpha) * 100%), transparent);
@@ -96,8 +112,8 @@
   }
   .title-menu{display:flex; flex-direction:column; gap:11px; width:230px;}
   .title-btn{
-    background:transparent; border:1px solid var(--line); color:var(--text-main);
-    font-family:var(--font-heading); font-size:14.5px; letter-spacing:0.18em;
+    background:transparent; border:var(--border-width) solid var(--line); color:var(--text-main);
+    font-family:var(--font-heading); font-weight:var(--heading-weight); font-size:14.5px; letter-spacing:0.18em;
     padding:11px 0; cursor:pointer; transition:all 0.25s ease;
   }
   .title-btn:hover{background:color-mix(in srgb, var(--accent) 10%, transparent); border-color:var(--accent); letter-spacing:0.26em;}
@@ -158,12 +174,12 @@
   #game:hover #topBar{opacity:1;}
   #game.ui-hidden #topBar, #game.ui-hidden #statusHud{opacity:0 !important; pointer-events:none;}
   .icon-btn{
-    background:rgba(11,14,23,0.75); border:1px solid var(--line); color:var(--text-sub);
+    background:var(--panel-bg-soft); border:var(--border-width) solid var(--line); color:var(--text-sub);
     font-size:11px; letter-spacing:0.1em; padding:6px 10px; cursor:pointer;
     font-family:var(--font-body); transition:all 0.2s ease;
   }
   .icon-btn:hover{color:var(--accent); border-color:var(--accent);}
-  .icon-btn.active{color:var(--bg-deep); border-color:var(--accent); background:var(--accent);}
+  .icon-btn.active{color:var(--text-on-bg); border-color:var(--accent); background:var(--accent);}
   .icon-btn.dev-btn{color:var(--dev); border-color:var(--dev);}
   .icon-btn.dev-btn:hover{background:rgba(94,230,168,0.12);}
   .icon-btn.hidden{display:none;}
@@ -172,7 +188,7 @@
   #dialogueBox{
     position:absolute; left:0; right:0; bottom:0; z-index:20;
     padding:18px 22px 20px;
-    background:linear-gradient(180deg, rgba(11,14,23,0) 0%, rgba(11,14,23,0.92) 18%, rgba(9,11,18,0.97) 100%);
+    background:linear-gradient(180deg, color-mix(in srgb, var(--bg-deep) 0%, transparent) 0%, color-mix(in srgb, var(--bg-deep) 92%, black) 18%, color-mix(in srgb, var(--bg-deep) 97%, black) 100%);
     cursor:pointer; min-height:170px;
     transition:opacity 0.25s ease, transform 0.25s ease;
   }
@@ -185,8 +201,8 @@
   }
   #game.ui-hidden #hiddenHint{opacity:0.8;}
   #nameTag{
-    display:inline-block; font-family:var(--font-heading); font-weight:700;
-    font-size:15px; color:var(--bg-deep); background:var(--accent);
+    display:inline-block; font-family:var(--font-heading); font-weight:var(--heading-weight);
+    font-size:15px; color:var(--text-on-bg); background:var(--accent);
     padding:4px 18px; margin-bottom:10px; clip-path:polygon(0 0,100% 0,94% 100%,0% 100%);
   }
   #nameTag.hidden{display:none;}
@@ -203,12 +219,12 @@
   /* ---------- choices ---------- */
   #choiceLayer{
     position:absolute; inset:0; z-index:25; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:12px; background:rgba(5,7,13,0.55);
+    align-items:center; justify-content:center; gap:12px; background:color-mix(in srgb, var(--bg-deep) 55%, transparent);
     padding:20px; transition:opacity 0.25s ease;
   }
   #choiceLayer.hidden{display:none;}
   .choice-btn{
-    background:rgba(18,23,42,0.9); border:1px solid var(--line); color:var(--text-main);
+    background:var(--panel-bg-strong); border:var(--border-width) solid var(--line); color:var(--text-main);
     font-family:var(--font-body); font-size:14px; padding:13px 28px;
     min-width:360px; max-width:520px; cursor:pointer; transition:all 0.2s ease;
   }
@@ -223,7 +239,7 @@
   }
   #feedbackBar.show{opacity:1; transform:translateY(0); pointer-events:auto;}
   .fb-btn{
-    background:rgba(11,14,23,0.88); border:1px solid var(--line); color:var(--text-sub);
+    background:var(--panel-bg-soft); border:var(--border-width) solid var(--line); color:var(--text-sub);
     font-size:12px; padding:7px 16px; cursor:pointer; transition:all 0.2s ease;
     display:flex; align-items:center; gap:6px;
   }
@@ -232,9 +248,9 @@
   .fb-tag{font-size:9.5px; color:var(--dev); border:1px solid var(--dev); padding:2px 7px; margin-left:2px;}
 
   /* ---------- backlog ---------- */
-  #backlogPanel{position:absolute; inset:0; z-index:60; background:rgba(5,7,13,0.97); padding:36px 46px; overflow-y:auto;}
+  #backlogPanel{position:absolute; inset:0; z-index:60; background:var(--panel-bg); padding:36px 46px; overflow-y:auto;}
   #backlogPanel.hidden{display:none;}
-  #backlogPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  #backlogPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .backlog-entry{margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;}
   .backlog-name{color:var(--accent-soft); font-size:12px; margin-bottom:4px;}
   .backlog-line{color:var(--text-main); font-size:13.5px; line-height:1.7;}
@@ -242,36 +258,36 @@
   .close-panel:hover{color:var(--accent);}
 
   /* ---------- save/load ---------- */
-  #savePanel{position:absolute; inset:0; z-index:70; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #savePanel{position:absolute; inset:0; z-index:70; background:var(--panel-bg); padding:34px 42px; overflow-y:auto;}
   #savePanel.hidden{display:none;}
-  #savePanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
+  #savePanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
   .slot-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
-  .save-slot{border:1px solid var(--line); background:rgba(18,23,42,0.7); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
+  .save-slot{border:var(--border-width) solid var(--line); background:var(--panel-bg-soft); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
   .save-slot:hover{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent);}
   .save-slot.empty{color:var(--text-sub); align-items:center; justify-content:center; min-height:100px; font-size:12.5px;}
-  .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg,#1a2140,#0b0e17); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,0.06);}
+  .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg, color-mix(in srgb, var(--bg-deep) 60%, var(--accent-soft)), var(--bg-deep)); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,0.06);}
   .slot-meta{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
   .slot-meta b{color:var(--text-main); font-weight:500; display:block; font-size:12px; margin-bottom:2px;}
   .slot-actions{display:flex; gap:6px; margin-top:2px;}
-  .slot-actions button{flex:1; font-size:10px; padding:5px 0; background:rgba(11,14,23,0.8); border:1px solid var(--line); color:var(--text-sub); cursor:pointer;}
+  .slot-actions button{flex:1; font-size:10px; padding:5px 0; background:var(--panel-bg-soft); border:var(--border-width) solid var(--line); color:var(--text-sub); cursor:pointer;}
   .slot-actions button:hover{color:var(--accent); border-color:var(--accent);}
   .slot-count-ctrl{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-sub); margin-left:auto;}
   .slot-count-ctrl.hidden{display:none;}
   .slot-count-ctrl button{background:transparent; border:1px solid var(--dev); color:var(--dev); width:22px; height:22px; cursor:pointer; font-size:13px; line-height:1;}
 
   /* ---------- CG gallery ---------- */
-  #galleryPanel{position:absolute; inset:0; z-index:65; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #galleryPanel{position:absolute; inset:0; z-index:65; background:var(--panel-bg); padding:34px 42px; overflow-y:auto;}
   #galleryPanel.hidden{display:none;}
-  #galleryPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
+  #galleryPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px;}
   .gallery-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
-  .gallery-cell{aspect-ratio:16/9; border:1px solid var(--line); background:#0b0e17 center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
+  .gallery-cell{aspect-ratio:16/9; border:var(--border-width) solid var(--line); background:var(--bg-deep) center/cover no-repeat; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;}
   .gallery-cell.locked{filter:brightness(0.25); cursor:default;}
   .gallery-cell span{font-size:10px; color:var(--text-sub);}
 
   /* ---------- options panel ---------- */
-  #optionsPanel{position:absolute; inset:0; z-index:75; background:rgba(5,7,13,0.97); padding:34px 42px; overflow-y:auto;}
+  #optionsPanel{position:absolute; inset:0; z-index:75; background:var(--panel-bg); padding:34px 42px; overflow-y:auto;}
   #optionsPanel.hidden{display:none;}
-  #optionsPanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
+  #optionsPanel h3{font-family:var(--font-heading); font-weight:var(--heading-weight); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 24px;}
   .opt-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06);}
   .opt-label{font-size:13px; color:var(--text-main); min-width:150px;}
   .opt-control{display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end;}
@@ -279,26 +295,28 @@
   .opt-control input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer;}
   .opt-control input[type="range"]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;}
   .opt-value{font-size:11px; color:var(--text-sub); min-width:34px; text-align:right;}
-  .opt-toggle{background:transparent; border:1px solid var(--line); color:var(--text-sub); font-size:11px; padding:6px 16px; cursor:pointer; letter-spacing:0.08em; transition:all 0.2s ease; min-width:64px;}
+  .opt-toggle{background:transparent; border:var(--border-width) solid var(--line); color:var(--text-sub); font-size:11px; padding:6px 16px; cursor:pointer; letter-spacing:0.08em; transition:all 0.2s ease; min-width:64px;}
   .opt-toggle.on{color:var(--accent); border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent);}
   .opt-note{font-size:10.5px; color:var(--text-sub); margin-top:24px; line-height:1.6;}
 
   /* ---------- developer panel ---------- */
+  /* 開発者パネル配下は意図的にゲーム本編テーマ(--accent等)を使わず、専用の--dev-*変数のみを使う。
+     こうすることで、本編のテーマ（配色・フォント・枠線太さ）をどう変更しても開発者パネルの見た目は一切変化しない。 */
   #devPanel{position:absolute; inset:0; z-index:95; background:rgba(4,5,9,0.99); padding:0; overflow:hidden; display:flex; flex-direction:column;}
   #devPanel.hidden{display:none;}
   .dev-header{display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid rgba(94,230,168,0.3); background:rgba(94,230,168,0.05);}
   .dev-header h3{font-family:'JetBrains Mono', monospace; color:var(--dev); font-size:13px; letter-spacing:0.1em; margin:0; flex:1;}
   .dev-tabs{display:flex; gap:6px;}
-  .dev-tab{background:transparent; border:1px solid rgba(94,230,168,0.3); color:var(--text-sub); font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; cursor:pointer;}
+  .dev-tab{background:transparent; border:1px solid rgba(94,230,168,0.3); color:var(--dev-text-sub); font-family:'JetBrains Mono', monospace; font-size:11px; padding:6px 12px; cursor:pointer;}
   .dev-tab.active{color:var(--dev); border-color:var(--dev); background:rgba(94,230,168,0.1);}
   .dev-body{flex:1; overflow-y:auto; padding:18px 22px;}
   .dev-section{display:none;}
   .dev-section.active{display:block;}
   .dev-section h4{font-family:'JetBrains Mono', monospace; color:var(--dev); font-size:12px; letter-spacing:0.08em; margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid rgba(94,230,168,0.2);}
   .dev-field-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
-  .dev-field-row label{font-size:11px; color:var(--text-sub); min-width:120px; font-family:'JetBrains Mono', monospace;}
+  .dev-field-row label{font-size:11px; color:var(--dev-text-sub); min-width:120px; font-family:'JetBrains Mono', monospace;}
   .dev-field-row input[type="text"], .dev-field-row select{
-    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--dev-text-main);
     font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:6px 8px;
   }
   .dev-field-row input[type="color"]{
@@ -307,70 +325,70 @@
   }
   .dev-mini-btn{background:transparent; border:1px solid var(--dev); color:var(--dev); font-size:10.5px; padding:5px 10px; cursor:pointer; font-family:'JetBrains Mono', monospace; white-space:nowrap;}
   .dev-mini-btn:hover{background:rgba(94,230,168,0.12);}
-  .dev-mini-btn.danger{border-color:var(--pink); color:var(--pink);}
+  .dev-mini-btn.danger{border-color:var(--dev-pink); color:var(--dev-pink);}
   textarea.dev-json{
     width:100%; min-height:360px; background:#05070d; color:#c8e6d6; border:1px solid rgba(94,230,168,0.25);
     font-family:'JetBrains Mono', monospace; font-size:12px; padding:14px; line-height:1.6; resize:vertical;
   }
   .dev-json-actions{display:flex; gap:8px; margin-top:10px;}
-  .dev-status-line{font-size:11px; color:var(--text-sub); margin-top:8px; font-family:'JetBrains Mono', monospace;}
-  .dev-status-line.err{color:var(--pink);}
+  .dev-status-line{font-size:11px; color:var(--dev-text-sub); margin-top:8px; font-family:'JetBrains Mono', monospace;}
+  .dev-status-line.err{color:var(--dev-pink);}
   .dev-status-line.ok{color:var(--dev);}
   .dev-choice-item{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
   .dev-choice-item input{flex:1;}
   .dev-mode-toggle-grid{display:flex; gap:10px; margin-bottom:14px;}
   .dev-mode-card{flex:1; border:1px solid rgba(255,255,255,0.12); padding:14px; cursor:pointer; transition:all 0.2s ease;}
   .dev-mode-card.active{border-color:var(--dev); background:rgba(94,230,168,0.08);}
-  .dev-mode-card b{display:block; color:var(--text-main); font-size:12.5px; margin-bottom:4px; font-family:'JetBrains Mono', monospace;}
-  .dev-mode-card span{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
+  .dev-mode-card b{display:block; color:var(--dev-text-main); font-size:12.5px; margin-bottom:4px; font-family:'JetBrains Mono', monospace;}
+  .dev-mode-card span{font-size:10.5px; color:var(--dev-text-sub); line-height:1.5;}
   .dev-hint-block{
     background:rgba(94,230,168,0.06); border:1px solid rgba(94,230,168,0.25); padding:12px 14px;
-    font-size:11px; color:var(--text-sub); line-height:1.7; margin-bottom:14px; font-family:'JetBrains Mono', monospace;
+    font-size:11px; color:var(--dev-text-sub); line-height:1.7; margin-bottom:14px; font-family:'JetBrains Mono', monospace;
   }
   .dev-hint-block code{color:var(--dev);}
   .dev-score-table{width:100%; border-collapse:collapse; font-family:'JetBrains Mono', monospace; font-size:11px; margin-top:10px;}
   .dev-score-table th{text-align:left; color:var(--dev); border-bottom:1px solid rgba(94,230,168,0.3); padding:6px 8px; font-weight:500;}
-  .dev-score-table td{border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 8px; color:var(--text-sub); vertical-align:top;}
-  .dev-score-table td.score-tags{color:var(--accent-soft); word-break:break-all; max-width:220px;}
-  .dev-score-table td.score-choice{color:var(--text-main); word-break:break-word; max-width:280px;}
+  .dev-score-table td{border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 8px; color:var(--dev-text-sub); vertical-align:top;}
+  .dev-score-table td.score-tags{color:var(--dev-accent-soft); word-break:break-all; max-width:220px;}
+  .dev-score-table td.score-choice{color:var(--dev-text-main); word-break:break-word; max-width:280px;}
   .dev-score-table input[type="number"]{
-    width:70px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    width:70px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--dev-text-main);
     font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:4px 6px;
   }
-  .dev-score-empty{font-size:11px; color:var(--text-sub); font-family:'JetBrains Mono', monospace; padding:10px 0;}
+  .dev-score-empty{font-size:11px; color:var(--dev-text-sub); font-family:'JetBrains Mono', monospace; padding:10px 0;}
 
   /* ---------- scenario GUI editor ---------- */
   .dev-subtabs{display:flex; gap:6px; margin-bottom:12px;}
-  .dev-subtab{background:transparent; border:1px solid rgba(232,178,92,0.3); color:var(--text-sub); font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:5px 11px; cursor:pointer;}
-  .dev-subtab.active{color:var(--accent); border-color:var(--accent); background:rgba(232,178,92,0.1);}
+  .dev-subtab{background:transparent; border:1px solid rgba(232,178,92,0.3); color:var(--dev-text-sub); font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:5px 11px; cursor:pointer;}
+  .dev-subtab.active{color:var(--dev-accent); border-color:var(--dev-accent); background:rgba(232,178,92,0.1);}
   .dev-subpanel{display:none;}
   .dev-subpanel.active{display:block;}
   .scenario-gui-layout{display:flex; gap:12px; align-items:flex-start;}
   .scenario-label-list{width:170px; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); background:rgba(18,23,42,0.4);}
-  .scenario-label-list-head{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.1); font-size:10.5px; color:var(--text-sub); font-family:'JetBrains Mono', monospace;}
+  .scenario-label-list-head{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.1); font-size:10.5px; color:var(--dev-text-sub); font-family:'JetBrains Mono', monospace;}
   #guiLabelList{max-height:420px; overflow-y:auto;}
   .scenario-label-item{
     display:flex; align-items:center; justify-content:space-between; gap:4px;
-    padding:7px 10px; font-size:11.5px; color:var(--text-sub); cursor:pointer;
+    padding:7px 10px; font-size:11.5px; color:var(--dev-text-sub); cursor:pointer;
     border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono', monospace;
   }
-  .scenario-label-item:hover{color:var(--text-main); background:rgba(232,178,92,0.06);}
-  .scenario-label-item.active{color:var(--accent); background:rgba(232,178,92,0.12); border-left:2px solid var(--accent);}
-  .scenario-label-item .label-del{color:var(--pink); font-size:10px; opacity:0.7;}
+  .scenario-label-item:hover{color:var(--dev-text-main); background:rgba(232,178,92,0.06);}
+  .scenario-label-item.active{color:var(--dev-accent); background:rgba(232,178,92,0.12); border-left:2px solid var(--dev-accent);}
+  .scenario-label-item .label-del{color:var(--dev-pink); font-size:10px; opacity:0.7;}
   .scenario-label-item .label-del:hover{opacity:1;}
   .scenario-row-area{flex:1; min-width:0;}
   .scenario-row-area-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-  .scenario-row-area-head span{font-size:12.5px; color:var(--accent); font-family:'JetBrains Mono', monospace;}
+  .scenario-row-area-head span{font-size:12.5px; color:var(--dev-accent); font-family:'JetBrains Mono', monospace;}
   .scenario-table-wrap{overflow-x:auto; border:1px solid rgba(255,255,255,0.1);}
   table.scenario-row-table{min-width:1280px;}
   table.scenario-row-table th{white-space:nowrap;}
   table.scenario-row-table td{padding:4px 6px; vertical-align:middle;}
   table.scenario-row-table tr.row-dragging{opacity:0.35;}
-  table.scenario-row-table tr.row-dragover{box-shadow:inset 0 2px 0 var(--accent);}
-  .row-drag-handle{cursor:grab; color:var(--text-sub); text-align:center; user-select:none;}
+  table.scenario-row-table tr.row-dragover{box-shadow:inset 0 2px 0 var(--dev-accent);}
+  .row-drag-handle{cursor:grab; color:var(--dev-text-sub); text-align:center; user-select:none;}
   .row-drag-handle:active{cursor:grabbing;}
   table.scenario-row-table input[type="text"], table.scenario-row-table select{
-    width:100%; min-width:64px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    width:100%; min-width:64px; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--dev-text-main);
     font-family:'JetBrains Mono', monospace; font-size:10.5px; padding:4px 5px;
   }
   table.scenario-row-table input:disabled, table.scenario-row-table select:disabled{
@@ -382,7 +400,7 @@
   }
   .row-cell-btn:hover{background:rgba(94,230,168,0.18);}
   .row-cell-btn:disabled{opacity:0.25; cursor:not-allowed; background:transparent;}
-  .row-del-btn{background:transparent; border:1px solid var(--pink); color:var(--pink); font-size:10px; padding:5px 7px; cursor:pointer; font-family:'JetBrains Mono', monospace;}
+  .row-del-btn{background:transparent; border:1px solid var(--dev-pink); color:var(--dev-pink); font-size:10px; padding:5px 7px; cursor:pointer; font-family:'JetBrains Mono', monospace;}
   .row-del-btn:hover{background:rgba(212,83,126,0.12);}
 
   /* ---------- sub editor overlay (choices / aiChoice candidates / variants) ---------- */
@@ -399,11 +417,11 @@
   .gui-sub-editor-head span{font-size:13px; color:var(--dev); font-family:'JetBrains Mono', monospace;}
   .gui-sub-editor-body{font-family:'JetBrains Mono', monospace; font-size:11.5px;}
   .sub-editor-item{border:1px solid rgba(255,255,255,0.1); padding:10px; margin-bottom:10px; background:rgba(255,255,255,0.02);}
-  .sub-editor-item-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--text-sub); font-size:10.5px;}
+  .sub-editor-item-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--dev-text-sub); font-size:10.5px;}
   .sub-editor-field{display:flex; align-items:center; gap:6px; margin-bottom:6px;}
-  .sub-editor-field label{min-width:80px; color:var(--text-sub); font-size:10.5px;}
+  .sub-editor-field label{min-width:80px; color:var(--dev-text-sub); font-size:10.5px;}
   .sub-editor-field input[type="text"], .sub-editor-field textarea{
-    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
+    flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--dev-text-main);
     font-family:'JetBrains Mono', monospace; font-size:11px; padding:5px 7px;
   }
   .sub-editor-field textarea{min-height:44px; resize:vertical;}
@@ -413,7 +431,7 @@
   #fadeOverlay.on{opacity:1;}
   #toast{
     position:absolute; left:50%; bottom:24px; transform:translateX(-50%);
-    background:rgba(11,14,23,0.92); border:1px solid var(--line); color:var(--accent);
+    background:var(--panel-bg-strong); border:var(--border-width) solid var(--line); color:var(--accent);
     font-size:12px; letter-spacing:0.1em; padding:8px 18px; z-index:96; opacity:0;
     pointer-events:none; transition:opacity 0.3s ease; text-align:center; white-space:nowrap;
   }
@@ -789,7 +807,7 @@
           <label>背景色（最深部）</label>
           <input type="color" id="themeBgDeepInput">
         </div>
-        <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色を推奨します。</p>
+        <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色・明るい色のどちらでも使えます。明るい色を選んだ場合、名前タグなどアクセント色の上に乗る文字は自動的に黒系に切り替わります（本文色そのものは変わりません）。</p>
 
         <h4 style="margin-top:18px;">タイトルロゴの光彩効果</h4>
         <div class="dev-field-row">
@@ -806,6 +824,28 @@
           </select>
         </div>
         <p class="dev-status-line" style="margin-top:-4px;">タイトル画面のロゴ文字にかかる、にじむような光の効果です。</p>
+
+        <h4 style="margin-top:18px;">枠・見出しの太さ</h4>
+        <div class="dev-field-row">
+          <label>枠線の太さ</label>
+          <select id="themeBorderWidth">
+            <option value="1">細い（1px）</option>
+            <option value="2">標準（2px）</option>
+            <option value="3">太い（3px）</option>
+            <option value="4">かなり太い（4px）</option>
+          </select>
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">ボタン・選択肢・各パネルなどの枠線の太さ。開発者パネル自体の枠線には影響しません。</p>
+        <div class="dev-field-row">
+          <label>見出しの太字</label>
+          <select id="themeHeadingWeight">
+            <option value="400">標準</option>
+            <option value="500">やや太字</option>
+            <option value="700">太字</option>
+            <option value="900">かなり太字</option>
+          </select>
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトルロゴ・各パネルの見出し・タイトル画面のボタン文字の太さ。フォント側が対応していない太さの場合、ブラウザが表示できる最も近い太さで表示されます。</p>
 
         <button class="dev-mini-btn" id="btnResetTheme">配色を初期値に戻す</button>
       </div>
@@ -1218,21 +1258,25 @@
   // ゲーム本編の配色テーマ。開発者パネル自体の配色（--devなど）は対象外。
   // accent: 最も使われる基調色（ボタン枠線・強調表示など。ここから枠線色やホバー背景も自動生成される）
   // accentSoft: サブタイトル・キャラ名などのサブ強調色 / pink: 好感度バーやポジ/ネガ表示の強調色
-  // textMain: 本文の文字色 / bgDeep: 画面全体の基調背景色
+  // textMain: 本文の文字色 / bgDeep: 画面全体の基調背景色（白系にしても崩れないよう、パネル背景や文字色は自動調整される）
   // logoGlowColor / logoGlowAlpha: タイトルロゴの光彩（にじみ）効果の色と強さ（0でオフ）
+  // borderWidth: ボタンやパネルの枠線の太さ(px) / headingWeight: 見出し・ロゴ・ボタン文字の太さ
   const THEME_DEFAULT = {
     accent:'#e8b25c', accentSoft:'#7c8fd6', pink:'#d4537e',
     textMain:'#f1eee6', bgDeep:'#0b0e17',
-    logoGlowColor:'#e8b25c', logoGlowAlpha:0.5
+    logoGlowColor:'#e8b25c', logoGlowAlpha:0.5,
+    borderWidth:1, headingWeight:700
   };
   let themeConfig = Object.assign({}, THEME_DEFAULT);
   // テーマプリセット一覧。開発者パネルの「テーマプリセット」プルダウンの選択肢として使う。
+  // 各プリセットはTHEME_DEFAULTを土台に、必要な項目だけ上書きする（borderWidth/headingWeightは基本デフォルトのまま）。
   const THEME_PRESETS = [
     { label: '星屑（デフォルト）', value: THEME_DEFAULT },
-    { label: '桜（ピンク基調）',   value: { accent:'#e78ea9', accentSoft:'#c98fd0', pink:'#e2456f', textMain:'#fbeef1', bgDeep:'#1a0f15', logoGlowColor:'#e78ea9', logoGlowAlpha:0.5 } },
-    { label: '深海（ブルー基調）', value: { accent:'#5ec9e6', accentSoft:'#4a7fd6', pink:'#e65e8f', textMain:'#e9f4f7', bgDeep:'#050b12', logoGlowColor:'#5ec9e6', logoGlowAlpha:0.5 } },
-    { label: '若葉（グリーン基調）', value: { accent:'#8fd66c', accentSoft:'#6fa88f', pink:'#e6935e', textMain:'#eef7ea', bgDeep:'#0a120a', logoGlowColor:'#8fd66c', logoGlowAlpha:0.45 } },
-    { label: '墨（モノクロ基調）', value: { accent:'#c9c4b6', accentSoft:'#8a8a8a', pink:'#c96b6b', textMain:'#f1eee6', bgDeep:'#0a0a0a', logoGlowColor:'#c9c4b6', logoGlowAlpha:0.3 } }
+    { label: '桜（ピンク基調）',   value: Object.assign({}, THEME_DEFAULT, { accent:'#e78ea9', accentSoft:'#c98fd0', pink:'#e2456f', textMain:'#fbeef1', bgDeep:'#1a0f15', logoGlowColor:'#e78ea9', logoGlowAlpha:0.5 }) },
+    { label: '深海（ブルー基調）', value: Object.assign({}, THEME_DEFAULT, { accent:'#5ec9e6', accentSoft:'#4a7fd6', pink:'#e65e8f', textMain:'#e9f4f7', bgDeep:'#050b12', logoGlowColor:'#5ec9e6', logoGlowAlpha:0.5 }) },
+    { label: '若葉（グリーン基調）', value: Object.assign({}, THEME_DEFAULT, { accent:'#8fd66c', accentSoft:'#6fa88f', pink:'#e6935e', textMain:'#eef7ea', bgDeep:'#0a120a', logoGlowColor:'#8fd66c', logoGlowAlpha:0.45 }) },
+    { label: '墨（モノクロ基調）', value: Object.assign({}, THEME_DEFAULT, { accent:'#c9c4b6', accentSoft:'#8a8a8a', pink:'#c96b6b', textMain:'#f1eee6', bgDeep:'#0a0a0a', logoGlowColor:'#c9c4b6', logoGlowAlpha:0.3 }) },
+    { label: '雪原（白背景）',     value: Object.assign({}, THEME_DEFAULT, { accent:'#c98a3e', accentSoft:'#6c7bc9', pink:'#c9436e', textMain:'#2a2620', bgDeep:'#f7f4ec', logoGlowColor:'#c98a3e', logoGlowAlpha:0.35 }) }
   ];
 
   function loadAssets(){
@@ -1273,6 +1317,16 @@
     document.documentElement.style.setProperty('--font-body', fontConfig.body);
     document.documentElement.style.setProperty('--font-heading', fontConfig.heading);
   }
+  // #RRGGBB形式の色から相対輝度を概算し、明るい色か暗い色かを判定する（WCAG簡易版）。
+  // 背景色の上に乗せる文字色を自動で黒系/白系に切り替えるために使う。
+  function isLightColor(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if(!m) return false;
+    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    // 人の目は緑を明るく感じやすいため重み付けした輝度計算式を使う
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6;
+  }
   // themeConfigの内容をCSS変数経由で実際の画面に反映する。
   // --line（枠線色）や各ホバー背景は --accent から color-mix() で自動生成されるため、ここで個別に指定する必要はない。
   function applyThemeConfig(){
@@ -1284,6 +1338,11 @@
     root.setProperty('--bg-deep', themeConfig.bgDeep);
     root.setProperty('--logo-glow', themeConfig.logoGlowColor);
     root.setProperty('--logo-glow-alpha', themeConfig.logoGlowAlpha);
+    root.setProperty('--border-width', themeConfig.borderWidth + 'px');
+    root.setProperty('--heading-weight', themeConfig.headingWeight);
+    // 背景色（bgDeep）が明るい色なら、その上に乗る文字（アイコンボタンのactive状態・名前タグなど）を黒系にする。
+    // 暗い背景ならtextMainをそのまま使う。これにより白背景テーマでも文字が読めなくなることを防ぐ。
+    root.setProperty('--text-on-bg', isLightColor(themeConfig.bgDeep) ? '#1a1a1a' : themeConfig.textMain);
   }
 
 
@@ -1554,7 +1613,7 @@
    'titleLogoInput','titleLogoSubInput','titleBtnStartInput','titleBtnLoadInput','titleBtnGalleryInput','titleBtnOptionsInput',
    'btnApplyTitleTexts','btnResetTitleTexts',
    'themePreset','themeAccentInput','themeAccentSoftInput','themePinkInput','themeTextMainInput','themeBgDeepInput',
-   'themeGlowColorInput','themeGlowStrength','btnResetTheme'
+   'themeGlowColorInput','themeGlowStrength','themeBorderWidth','themeHeadingWeight','btnResetTheme'
   ].forEach(id => { el[id] = document.getElementById(id); });
   const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
 
@@ -3314,6 +3373,14 @@
     const strengths = [0, 0.25, 0.5, 0.8];
     const nearest = strengths.reduce((a, b) => Math.abs(b - themeConfig.logoGlowAlpha) < Math.abs(a - themeConfig.logoGlowAlpha) ? b : a);
     el.themeGlowStrength.value = String(nearest);
+    // 枠の太さは1〜4pxの4段階に丸めて一番近いものを選択状態にする
+    const widths = [1, 2, 3, 4];
+    const nearestWidth = widths.reduce((a, b) => Math.abs(b - themeConfig.borderWidth) < Math.abs(a - themeConfig.borderWidth) ? b : a);
+    el.themeBorderWidth.value = String(nearestWidth);
+    // 見出しの太さは400/500/700/900の4段階に丸めて一番近いものを選択状態にする
+    const weights = [400, 500, 700, 900];
+    const nearestWeight = weights.reduce((a, b) => Math.abs(b - themeConfig.headingWeight) < Math.abs(a - themeConfig.headingWeight) ? b : a);
+    el.themeHeadingWeight.value = String(nearestWeight);
     refreshThemePresetSelect();
   }
   function refreshThemePresetSelect(){
@@ -3365,6 +3432,20 @@
     applyThemeConfig();
     refreshThemePresetSelect();
     showToast('光彩の強さを適用しました');
+  });
+  el.themeBorderWidth && el.themeBorderWidth.addEventListener('change', () => {
+    themeConfig.borderWidth = parseInt(el.themeBorderWidth.value, 10);
+    persistAssets();
+    applyThemeConfig();
+    refreshThemePresetSelect();
+    showToast('枠線の太さを適用しました');
+  });
+  el.themeHeadingWeight && el.themeHeadingWeight.addEventListener('change', () => {
+    themeConfig.headingWeight = parseInt(el.themeHeadingWeight.value, 10);
+    persistAssets();
+    applyThemeConfig();
+    refreshThemePresetSelect();
+    showToast('見出しの太さを適用しました');
   });
   el.btnResetTheme && el.btnResetTheme.addEventListener('click', () => {
     themeConfig = Object.assign({}, THEME_DEFAULT);
