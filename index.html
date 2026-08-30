@@ -12,9 +12,13 @@
     --accent-soft:#7c8fd6;
     --text-main:#f1eee6;
     --text-sub:#a9adc4;
-    --line:rgba(232,178,92,0.35);
+    --line:color-mix(in srgb, var(--accent) 35%, transparent);
     --pink:#d4537e;
     --dev:#5ee6a8;
+    /* タイトルロゴの光彩（グロー）色。デフォルトはaccentと同色。強さは --logo-glow-blur / --logo-glow-alpha で調整。 */
+    --logo-glow:var(--accent);
+    --logo-glow-blur:20px;
+    --logo-glow-alpha:0.5;
     /* ゲーム本編用フォント。開発者パネル(JetBrains Mono)には適用されない。開発者パネル「アセット」タブから変更可能。 */
     --font-body:'Zen Kaku Gothic New', sans-serif;
     --font-heading:'Shippori Mincho', serif;
@@ -83,7 +87,8 @@
   .game-logo{
     font-family:var(--font-heading); font-weight:700;
     font-size:clamp(26px,5.5vw,48px); color:var(--text-main);
-    letter-spacing:0.15em; text-shadow:0 0 20px rgba(232,178,92,0.5); margin:0;
+    letter-spacing:0.15em; margin:0;
+    text-shadow:0 0 var(--logo-glow-blur) color-mix(in srgb, var(--logo-glow) calc(var(--logo-glow-alpha) * 100%), transparent);
   }
   .game-logo-sub{
     font-family:var(--font-heading); font-size:12px; color:var(--accent-soft);
@@ -95,9 +100,9 @@
     font-family:var(--font-heading); font-size:14.5px; letter-spacing:0.18em;
     padding:11px 0; cursor:pointer; transition:all 0.25s ease;
   }
-  .title-btn:hover{background:rgba(232,178,92,0.1); border-color:var(--accent); letter-spacing:0.26em;}
+  .title-btn:hover{background:color-mix(in srgb, var(--accent) 10%, transparent); border-color:var(--accent); letter-spacing:0.26em;}
   .title-btn.primary{border-color:var(--accent); color:var(--accent);}
-  .title-btn.primary:hover{background:rgba(232,178,92,0.16);}
+  .title-btn.primary:hover{background:color-mix(in srgb, var(--accent) 16%, transparent);}
   .title-btn.dev{border-color:var(--dev); color:var(--dev);}
   .title-btn.dev:hover{background:rgba(94,230,168,0.12);}
   .title-btn.hidden{display:none;}
@@ -125,7 +130,7 @@
     width:240px; height:400px; border-radius:120px 120px 0 0;
     display:flex; align-items:center; justify-content:center;
     font-family:var(--font-heading); font-size:14px; color:var(--text-sub);
-    border:1px solid rgba(255,255,255,0.08); background:rgba(124,143,214,0.06);
+    border:1px solid rgba(255,255,255,0.08); background:color-mix(in srgb, var(--accent-soft) 6%, transparent);
   }
 
   /* ---------- status HUD (affection: dev only) ---------- */
@@ -143,7 +148,7 @@
   .status-name{color:var(--text-main); min-width:44px;}
   .status-bar-track{width:90px; height:5px; background:rgba(255,255,255,0.08); position:relative;}
   .status-bar-fill{height:100%; background:var(--pink); transition:width 0.4s ease; width:0%;}
-  .status-mood-tag{font-size:9.5px; color:var(--accent-soft); border:1px solid rgba(124,143,214,0.4); padding:1px 6px; letter-spacing:0.05em;}
+  .status-mood-tag{font-size:9.5px; color:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent-soft) 40%, transparent); padding:1px 6px; letter-spacing:0.05em;}
 
   /* ---------- top bar ---------- */
   #topBar{
@@ -207,7 +212,7 @@
     font-family:var(--font-body); font-size:14px; padding:13px 28px;
     min-width:360px; max-width:520px; cursor:pointer; transition:all 0.2s ease;
   }
-  .choice-btn:hover{border-color:var(--accent); background:rgba(232,178,92,0.12); transform:translateX(4px);}
+  .choice-btn:hover{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); transform:translateX(4px);}
 
   /* ---------- feedback bar (training) ---------- */
   #feedbackBar{
@@ -242,7 +247,7 @@
   #savePanel h3{font-family:var(--font-heading); color:var(--accent); letter-spacing:0.2em; font-size:14px; margin:0 0 18px; display:flex; align-items:center; gap:10px;}
   .slot-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
   .save-slot{border:1px solid var(--line); background:rgba(18,23,42,0.7); padding:11px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:7px;}
-  .save-slot:hover{border-color:var(--accent); background:rgba(232,178,92,0.08);}
+  .save-slot:hover{border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent);}
   .save-slot.empty{color:var(--text-sub); align-items:center; justify-content:center; min-height:100px; font-size:12.5px;}
   .slot-thumb{width:100%; height:64px; background:linear-gradient(135deg,#1a2140,#0b0e17); background-size:cover; background-position:center; border:1px solid rgba(255,255,255,0.06);}
   .slot-meta{font-size:10.5px; color:var(--text-sub); line-height:1.5;}
@@ -275,7 +280,7 @@
   .opt-control input[type="range"]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:var(--accent); border:none; cursor:pointer;}
   .opt-value{font-size:11px; color:var(--text-sub); min-width:34px; text-align:right;}
   .opt-toggle{background:transparent; border:1px solid var(--line); color:var(--text-sub); font-size:11px; padding:6px 16px; cursor:pointer; letter-spacing:0.08em; transition:all 0.2s ease; min-width:64px;}
-  .opt-toggle.on{color:var(--accent); border-color:var(--accent); background:rgba(232,178,92,0.1);}
+  .opt-toggle.on{color:var(--accent); border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent);}
   .opt-note{font-size:10.5px; color:var(--text-sub); margin-top:24px; line-height:1.6;}
 
   /* ---------- developer panel ---------- */
@@ -295,6 +300,10 @@
   .dev-field-row input[type="text"], .dev-field-row select{
     flex:1; background:rgba(18,23,42,0.8); border:1px solid rgba(255,255,255,0.12); color:var(--text-main);
     font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:6px 8px;
+  }
+  .dev-field-row input[type="color"]{
+    width:44px; height:28px; padding:2px; background:rgba(18,23,42,0.8);
+    border:1px solid rgba(255,255,255,0.12); cursor:pointer;
   }
   .dev-mini-btn{background:transparent; border:1px solid var(--dev); color:var(--dev); font-size:10.5px; padding:5px 10px; cursor:pointer; font-family:'JetBrains Mono', monospace; white-space:nowrap;}
   .dev-mini-btn:hover{background:rgba(94,230,168,0.12);}
@@ -745,6 +754,60 @@
         <p class="dev-status-line" style="margin-top:-4px;">タイトルロゴ・各パネルの見出し・選択肢ボタンなどに使われます。プリセットを選ぶと即適用されます。未登録フォントを使う場合は下の欄に直接入力してください。</p>
         <button class="dev-mini-btn" id="btnApplyFonts">フォントを適用</button>
         <button class="dev-mini-btn" id="btnResetFonts">初期値に戻す</button>
+
+        <h4 style="margin-top:20px;">テーマ / カラー</h4>
+        <p class="dev-status-line">
+          ゲーム本編の配色をまとめて変更できます（開発者パネル自体の配色は対象外です）。
+          色を変更すると即座に適用・保存されます。
+        </p>
+        <div class="dev-field-row">
+          <label>テーマプリセット</label>
+          <select id="themePreset"></select>
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">プリセットを選ぶと下の各色に一括反映されます。その後1色ずつ調整すると「（カスタム）」に切り替わります。</p>
+
+        <div class="dev-field-row">
+          <label>基調色（アクセント）</label>
+          <input type="color" id="themeAccentInput">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">ボタンの枠線・選択中の強調・文字送りマークなど、最も使われる色。枠線色や各種ホバー背景もこの色から自動生成されます。</p>
+        <div class="dev-field-row">
+          <label>サブアクセント色</label>
+          <input type="color" id="themeAccentSoftInput">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">サブタイトル・キャラ名・ムードタグなどに使われる色。</p>
+        <div class="dev-field-row">
+          <label>強調色（ポジ/ネガ）</label>
+          <input type="color" id="themePinkInput">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">好感度バー・Goodフィードバックなど、目立たせたい箇所に使われる色。</p>
+        <div class="dev-field-row">
+          <label>本文色</label>
+          <input type="color" id="themeTextMainInput">
+        </div>
+        <div class="dev-field-row">
+          <label>背景色（最深部）</label>
+          <input type="color" id="themeBgDeepInput">
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">画面の基調となる背景色。暗い色を推奨します。</p>
+
+        <h4 style="margin-top:18px;">タイトルロゴの光彩効果</h4>
+        <div class="dev-field-row">
+          <label>光彩の色</label>
+          <input type="color" id="themeGlowColorInput">
+        </div>
+        <div class="dev-field-row">
+          <label>光彩の強さ</label>
+          <select id="themeGlowStrength">
+            <option value="0">なし</option>
+            <option value="0.25">弱</option>
+            <option value="0.5">標準</option>
+            <option value="0.8">強</option>
+          </select>
+        </div>
+        <p class="dev-status-line" style="margin-top:-4px;">タイトル画面のロゴ文字にかかる、にじむような光の効果です。</p>
+
+        <button class="dev-mini-btn" id="btnResetTheme">配色を初期値に戻す</button>
       </div>
 
       <div class="dev-section" data-section="save">
@@ -1152,6 +1215,26 @@
     { label: 'Yomogi',              value: "'Yomogi', cursive" }
   ];
 
+  // ゲーム本編の配色テーマ。開発者パネル自体の配色（--devなど）は対象外。
+  // accent: 最も使われる基調色（ボタン枠線・強調表示など。ここから枠線色やホバー背景も自動生成される）
+  // accentSoft: サブタイトル・キャラ名などのサブ強調色 / pink: 好感度バーやポジ/ネガ表示の強調色
+  // textMain: 本文の文字色 / bgDeep: 画面全体の基調背景色
+  // logoGlowColor / logoGlowAlpha: タイトルロゴの光彩（にじみ）効果の色と強さ（0でオフ）
+  const THEME_DEFAULT = {
+    accent:'#e8b25c', accentSoft:'#7c8fd6', pink:'#d4537e',
+    textMain:'#f1eee6', bgDeep:'#0b0e17',
+    logoGlowColor:'#e8b25c', logoGlowAlpha:0.5
+  };
+  let themeConfig = Object.assign({}, THEME_DEFAULT);
+  // テーマプリセット一覧。開発者パネルの「テーマプリセット」プルダウンの選択肢として使う。
+  const THEME_PRESETS = [
+    { label: '星屑（デフォルト）', value: THEME_DEFAULT },
+    { label: '桜（ピンク基調）',   value: { accent:'#e78ea9', accentSoft:'#c98fd0', pink:'#e2456f', textMain:'#fbeef1', bgDeep:'#1a0f15', logoGlowColor:'#e78ea9', logoGlowAlpha:0.5 } },
+    { label: '深海（ブルー基調）', value: { accent:'#5ec9e6', accentSoft:'#4a7fd6', pink:'#e65e8f', textMain:'#e9f4f7', bgDeep:'#050b12', logoGlowColor:'#5ec9e6', logoGlowAlpha:0.5 } },
+    { label: '若葉（グリーン基調）', value: { accent:'#8fd66c', accentSoft:'#6fa88f', pink:'#e6935e', textMain:'#eef7ea', bgDeep:'#0a120a', logoGlowColor:'#8fd66c', logoGlowAlpha:0.45 } },
+    { label: '墨（モノクロ基調）', value: { accent:'#c9c4b6', accentSoft:'#8a8a8a', pink:'#c96b6b', textMain:'#f1eee6', bgDeep:'#0a0a0a', logoGlowColor:'#c9c4b6', logoGlowAlpha:0.3 } }
+  ];
+
   function loadAssets(){
     try{
       const raw = localStorage.getItem(ASSETS_KEY);
@@ -1169,16 +1252,18 @@
       if(data.seList) seList = data.seList;
       if(data.titleConfig) titleConfig = Object.assign(titleConfig, data.titleConfig);
       if(data.fontConfig) fontConfig = Object.assign(fontConfig, data.fontConfig);
+      if(data.themeConfig) themeConfig = Object.assign({}, THEME_DEFAULT, data.themeConfig);
     }catch(e){}
     // MAIN_CHAR は物語の中核キャラなので、誤って削除されていた場合は復元する
     if(!characters[MAIN_CHAR]){
       characters[MAIN_CHAR] = { name: 'アカリ', img: '' };
     }
     applyFontConfig();
+    applyThemeConfig();
   }
   function persistAssets(){
     try{
-      localStorage.setItem(ASSETS_KEY, JSON.stringify({ backgrounds, characters, cgGallery, bgmList, seList, titleConfig, fontConfig }));
+      localStorage.setItem(ASSETS_KEY, JSON.stringify({ backgrounds, characters, cgGallery, bgmList, seList, titleConfig, fontConfig, themeConfig }));
     }catch(e){}
   }
   // fontConfigの内容をCSS変数経由で実際の画面に反映する。
@@ -1188,6 +1273,20 @@
     document.documentElement.style.setProperty('--font-body', fontConfig.body);
     document.documentElement.style.setProperty('--font-heading', fontConfig.heading);
   }
+  // themeConfigの内容をCSS変数経由で実際の画面に反映する。
+  // --line（枠線色）や各ホバー背景は --accent から color-mix() で自動生成されるため、ここで個別に指定する必要はない。
+  function applyThemeConfig(){
+    const root = document.documentElement.style;
+    root.setProperty('--accent', themeConfig.accent);
+    root.setProperty('--accent-soft', themeConfig.accentSoft);
+    root.setProperty('--pink', themeConfig.pink);
+    root.setProperty('--text-main', themeConfig.textMain);
+    root.setProperty('--bg-deep', themeConfig.bgDeep);
+    root.setProperty('--logo-glow', themeConfig.logoGlowColor);
+    root.setProperty('--logo-glow-alpha', themeConfig.logoGlowAlpha);
+  }
+
+
 
   // ============================================================
   // 4. シナリオデータ（開発者モードで編集可能。localStorageに永続化）
@@ -1453,7 +1552,9 @@
    'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','fontBodyPreset','fontHeadingPreset','btnApplyFonts','btnResetFonts','titleBgLayer',
    'gameLogo','gameLogoSub',
    'titleLogoInput','titleLogoSubInput','titleBtnStartInput','titleBtnLoadInput','titleBtnGalleryInput','titleBtnOptionsInput',
-   'btnApplyTitleTexts','btnResetTitleTexts'
+   'btnApplyTitleTexts','btnResetTitleTexts',
+   'themePreset','themeAccentInput','themeAccentSoftInput','themePinkInput','themeTextMainInput','themeBgDeepInput',
+   'themeGlowColorInput','themeGlowStrength','btnResetTheme'
   ].forEach(id => { el[id] = document.getElementById(id); });
   const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
 
@@ -3109,6 +3210,7 @@
     el.fontBodyInput.value = fontConfig.body;
     el.fontHeadingInput.value = fontConfig.heading;
     refreshFontPresetSelects();
+    refreshThemeUi();
   }
   // 本文/見出しのフォントプリセット<select>に選択肢を詰め、現在値がプリセットと一致すればそれを選択状態にする。
   // プリセットに無い値（手入力されたもの）の場合は「（カスタム入力）」を選択状態にする。
@@ -3196,6 +3298,82 @@
     refreshFontPresetSelects();
     showToast('フォントを初期値に戻しました');
   });
+
+  // --- テーマ（配色） ---
+  // 各カラーピッカー/セレクトの現在値をthemeConfigの内容に合わせて更新する。
+  // プリセットの<select>は、現在のthemeConfigがどのプリセットとも完全一致しない場合「（カスタム）」を選択状態にする。
+  function refreshThemeUi(){
+    if(!el.themeAccentInput) return;
+    el.themeAccentInput.value = themeConfig.accent;
+    el.themeAccentSoftInput.value = themeConfig.accentSoft;
+    el.themePinkInput.value = themeConfig.pink;
+    el.themeTextMainInput.value = themeConfig.textMain;
+    el.themeBgDeepInput.value = themeConfig.bgDeep;
+    el.themeGlowColorInput.value = themeConfig.logoGlowColor;
+    // 光彩の強さは0/0.25/0.5/0.8の4段階に丸めて一番近いものを選択状態にする
+    const strengths = [0, 0.25, 0.5, 0.8];
+    const nearest = strengths.reduce((a, b) => Math.abs(b - themeConfig.logoGlowAlpha) < Math.abs(a - themeConfig.logoGlowAlpha) ? b : a);
+    el.themeGlowStrength.value = String(nearest);
+    refreshThemePresetSelect();
+  }
+  function refreshThemePresetSelect(){
+    el.themePreset.innerHTML = '';
+    const customOpt = document.createElement('option');
+    customOpt.value = ''; customOpt.textContent = '（カスタム）';
+    el.themePreset.appendChild(customOpt);
+    let matched = false;
+    THEME_PRESETS.forEach((preset, i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i); opt.textContent = preset.label;
+      const isMatch = Object.keys(preset.value).every(k => preset.value[k] === themeConfig[k]);
+      if(isMatch){ opt.selected = true; matched = true; }
+      el.themePreset.appendChild(opt);
+    });
+    if(!matched) customOpt.selected = true;
+  }
+  // プリセット選択時は即座に全色へ反映・保存する。空値（カスタム）が選ばれた場合は何もしない。
+  el.themePreset && el.themePreset.addEventListener('change', () => {
+    const idx = el.themePreset.value;
+    if(idx === '') return;
+    themeConfig = Object.assign({}, THEME_PRESETS[parseInt(idx, 10)].value);
+    persistAssets();
+    applyThemeConfig();
+    refreshThemeUi();
+    showToast('テーマを適用しました');
+  });
+  // 各色ピッカーは変更されるたびに即座に適用・保存する。
+  function bindThemeColorInput(inputEl, key, label){
+    inputEl && inputEl.addEventListener('input', () => {
+      themeConfig[key] = inputEl.value;
+      persistAssets();
+      applyThemeConfig();
+      refreshThemePresetSelect();
+    });
+    inputEl && inputEl.addEventListener('change', () => {
+      showToast(label + 'を適用しました');
+    });
+  }
+  bindThemeColorInput(el.themeAccentInput, 'accent', '基調色');
+  bindThemeColorInput(el.themeAccentSoftInput, 'accentSoft', 'サブアクセント色');
+  bindThemeColorInput(el.themePinkInput, 'pink', '強調色');
+  bindThemeColorInput(el.themeTextMainInput, 'textMain', '本文色');
+  bindThemeColorInput(el.themeBgDeepInput, 'bgDeep', '背景色');
+  bindThemeColorInput(el.themeGlowColorInput, 'logoGlowColor', '光彩の色');
+  el.themeGlowStrength && el.themeGlowStrength.addEventListener('change', () => {
+    themeConfig.logoGlowAlpha = parseFloat(el.themeGlowStrength.value);
+    persistAssets();
+    applyThemeConfig();
+    refreshThemePresetSelect();
+    showToast('光彩の強さを適用しました');
+  });
+  el.btnResetTheme && el.btnResetTheme.addEventListener('click', () => {
+    themeConfig = Object.assign({}, THEME_DEFAULT);
+    persistAssets();
+    applyThemeConfig();
+    refreshThemeUi();
+    showToast('配色を初期値に戻しました');
+  });
+
   el.btnApplyTitleTexts && el.btnApplyTitleTexts.addEventListener('click', () => {
     titleConfig.logo = el.titleLogoInput.value || '星屑ノベル';
     titleConfig.logoSub = el.titleLogoSubInput.value || 'S T A R D U S T   N O V E L';
