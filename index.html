@@ -2042,6 +2042,8 @@
       el.titleBgLayer.style.backgroundImage = '';
       el.titleBgLayer.classList.remove('has-image');
     }
+    // ブラウザの自動再生制限により、ページ読み込み直後（ユーザー操作前）はAudioContextがsuspended状態で
+    // 実際には音が鳴らない。ここではひとまず再生を試み、鳴らせるかどうかは下の「最初の操作でunlock」に任せる。
     const bgmUrl = titleConfig.bgmKey && bgmList[titleConfig.bgmKey] ? bgmList[titleConfig.bgmKey] : '';
     if(bgmUrl){
       SoundEngine.playBgm(bgmUrl);
@@ -2049,6 +2051,24 @@
       SoundEngine.stopBgm();
     }
   }
+  // ページ内で最初に行われたクリック/タップ/キー操作でAudioContextをunlockし、
+  // その時点でタイトル画面が表示中であれば、タイトルBGMを鳴らし直す。
+  // （suspended状態のまま鳴らそうとした音源は、resume()しても自動では聞こえるようにならないため、
+  //   unlock後に改めてplayBgmを呼び直す必要がある）
+  let hasUnlockedAudioOnce = false;
+  function unlockAudioAndReplayTitleBgmOnce(){
+    if(hasUnlockedAudioOnce) return;
+    hasUnlockedAudioOnce = true;
+    SoundEngine.unlock();
+    if(!el.titleScreen.classList.contains('hidden')){
+      const bgmUrl = titleConfig.bgmKey && bgmList[titleConfig.bgmKey] ? bgmList[titleConfig.bgmKey] : '';
+      if(bgmUrl) SoundEngine.playBgm(bgmUrl);
+    }
+    document.removeEventListener('pointerdown', unlockAudioAndReplayTitleBgmOnce);
+    document.removeEventListener('keydown', unlockAudioAndReplayTitleBgmOnce);
+  }
+  document.addEventListener('pointerdown', unlockAudioAndReplayTitleBgmOnce);
+  document.addEventListener('keydown', unlockAudioAndReplayTitleBgmOnce);
   function showTitle(){
     stopEndlessMode();
     el.titleScreen.classList.remove('hidden');
