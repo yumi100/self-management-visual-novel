@@ -503,10 +503,18 @@
       <div class="opt-control"><input type="range" id="optTextSpeed" min="1" max="10" value="5" step="1"><span class="opt-value" id="optTextSpeedVal">5</span></div>
     </div>
     <div class="opt-row">
+      <span class="opt-label">オート送り速度</span>
+      <div class="opt-control"><input type="range" id="optAutoSpeed" min="1" max="10" value="5" step="1"><span class="opt-value" id="optAutoSpeedVal">5</span></div>
+    </div>
+    <div class="opt-row">
       <span class="opt-label">調教モード表示</span>
       <div class="opt-control"><button class="opt-toggle on" id="optTrainToggle">ON</button></div>
     </div>
     <p class="opt-note">「調教モード表示」をOFFにすると、♡/×の好感度フィードバックは出さずに自動でスキップされ、物語はそのまま進みます。設定はブラウザに自動保存されます。会話画面で2本指タップするとテキスト欄を一時的に隠せます（もう一度タップで復帰）。</p>
+
+    <h3 style="margin-top:32px;">データ管理</h3>
+    <p class="opt-note">セーブデータ・キャラの好感度や学習データ・既読情報・CGの解放状況をすべて削除し、ゲームを最初の状態に戻します。この操作は取り消せません。</p>
+    <button class="title-btn" id="btnOptWipeAll" style="border-color:var(--pink); color:var(--pink); width:auto; padding:11px 24px;">全データを削除する</button>
   </div>
 
   <!-- ===================== 開発者パネル ===================== -->
@@ -683,6 +691,34 @@
           <select id="titleBgmSelect"></select>
         </div>
 
+        <p class="dev-status-line" style="margin-top:14px;">タイトル画面の文言を自由に変更できます。</p>
+        <div class="dev-field-row">
+          <label>タイトル名</label>
+          <input type="text" id="titleLogoInput" placeholder="星屑ノベル">
+        </div>
+        <div class="dev-field-row">
+          <label>サブタイトル</label>
+          <input type="text" id="titleLogoSubInput" placeholder="S T A R D U S T   N O V E L">
+        </div>
+        <div class="dev-field-row">
+          <label>「はじめから」</label>
+          <input type="text" id="titleBtnStartInput" placeholder="はじめから">
+        </div>
+        <div class="dev-field-row">
+          <label>「つづきから」</label>
+          <input type="text" id="titleBtnLoadInput" placeholder="つづきから">
+        </div>
+        <div class="dev-field-row">
+          <label>「CGギャラリー」</label>
+          <input type="text" id="titleBtnGalleryInput" placeholder="CGギャラリー">
+        </div>
+        <div class="dev-field-row">
+          <label>「設定」</label>
+          <input type="text" id="titleBtnOptionsInput" placeholder="設定">
+        </div>
+        <button class="dev-mini-btn" id="btnApplyTitleTexts">文言を適用</button>
+        <button class="dev-mini-btn" id="btnResetTitleTexts">初期値に戻す</button>
+
         <h4 style="margin-top:20px;">フォント</h4>
         <p class="dev-status-line">
           ゲーム本編で使われる2種類のフォントを変更できます（開発者パネル自体のフォントは対象外です）。
@@ -777,8 +813,8 @@
 
   <div id="titleScreen">
     <div id="titleBgLayer"></div>
-    <p class="game-logo">星屑ノベル</p>
-    <p class="game-logo-sub">S T A R D U S T &nbsp; N O V E L</p>
+    <p class="game-logo" id="gameLogo">星屑ノベル</p>
+    <p class="game-logo-sub" id="gameLogoSub">S T A R D U S T &nbsp; N O V E L</p>
     <div class="title-menu">
       <button class="title-btn primary" id="btnStart">はじめから</button>
       <button class="title-btn" id="btnTitleLoad" disabled>つづきから</button>
@@ -1089,7 +1125,11 @@
   let bgmList = { rooftop_theme: "", classroom_theme: "", ending_theme: "" };
   let seList = { select: "", type: "", unlock: "", feedback_good: "", feedback_bad: "" };
   // タイトル画面専用の背景/BGM設定。値は backgrounds / bgmList のキー名を指す（空なら未設定＝今まで通りの見た目）。
-  let titleConfig = { bgKey: "", bgmKey: "" };
+  let titleConfig = {
+    bgKey: "", bgmKey: "",
+    logo: "星屑ノベル", logoSub: "S T A R D U S T   N O V E L",
+    btnStart: "はじめから", btnLoad: "つづきから", btnGallery: "CGギャラリー", btnOptions: "設定"
+  };
   // ゲーム本編で使われる2種のフォント。body: 通常セリフ・地の文・UI全般。heading: タイトルロゴ・見出し・ボタン等。
   // 開発者パネルのフォント（JetBrains Mono）はツール内部の表示なので対象外。
   let fontConfig = { body: "'Zen Kaku Gothic New', sans-serif", heading: "'Shippori Mincho', serif" };
@@ -1331,7 +1371,7 @@
   // 6. 設定
   // ============================================================
   const OPTIONS_KEY = 'stardustNovel_options_v1';
-  let options = { bgmVolume: 70, bgmOn: true, seVolume: 80, seOn: true, textSpeed: 5, trainingUiOn: true };
+  let options = { bgmVolume: 70, bgmOn: true, seVolume: 80, seOn: true, textSpeed: 5, autoSpeed: 5, trainingUiOn: true };
   function loadOptions(){
     try{ const raw = localStorage.getItem(OPTIONS_KEY); if(raw) options = Object.assign(options, JSON.parse(raw)); }catch(e){}
   }
@@ -1341,6 +1381,8 @@
     SoundEngine.setSeVolume(options.seOn ? options.seVolume / 100 : 0);
   }
   function textSpeedToMs(){ return Math.round(46 - options.textSpeed * 4); }
+  // オート送りの待ち時間(ms)。textSpeedと同じ1〜10段階。5が今までの固定値(1100ms)相当。
+  function autoSpeedToMs(){ return Math.round(2100 - options.autoSpeed * 200); }
 
   // ============================================================
   // 7. モード管理（シナリオ / エンドレス）
@@ -1378,7 +1420,7 @@
    'continueMark','choiceLayer','bgLayer','bgLayerNext','spriteLeft','spriteCenter','spriteRight','fadeOverlay',
    'backlogPanel','backlogList','savePanel','savePanelTitle','slotGrid','galleryPanel','galleryGrid',
    'optionsPanel','btnCloseOptions','optBgmVol','optBgmVolVal','optBgmToggle','optSeVol','optSeVolVal','optSeToggle',
-   'optTextSpeed','optTextSpeedVal','optTrainToggle',
+   'optTextSpeed','optTextSpeedVal','optAutoSpeed','optAutoSpeedVal','optTrainToggle','btnOptWipeAll',
    'btnSave','btnLoad','btnLog','btnCloseLog','btnCloseSave','btnCloseGallery','btnGallery','btnOptions',
    'btnAuto','btnSkip','btnTitle','toast','statusHud','feedbackBar','fbGood','fbBad','game','hiddenHint',
    'devBadge','btnDevPanel','devPanel','btnDevClose','btnDevDisable','scenarioEditor','btnScenarioApply','btnScenarioFormat',
@@ -1390,7 +1432,10 @@
    'scoreCharSelect','scoreSceneSelect','scoreTableWrap','scoreNewTags','scoreNewChoice','scoreNewScore','btnScoreAdd','scoreStatus',
    'guiLabelList','btnGuiAddLabel','guiCurrentLabelName','btnGuiAddRow','guiRowTableBody','guiScenarioStatus',
    'guiSubEditorOverlay','guiSubEditorTitle','guiSubEditorBody','btnGuiSubEditorClose',
-   'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','btnApplyFonts','btnResetFonts','titleBgLayer'
+   'titleBgSelect','titleBgmSelect','fontBodyInput','fontHeadingInput','btnApplyFonts','btnResetFonts','titleBgLayer',
+   'gameLogo','gameLogoSub',
+   'titleLogoInput','titleLogoSubInput','titleBtnStartInput','titleBtnLoadInput','titleBtnGalleryInput','titleBtnOptionsInput',
+   'btnApplyTitleTexts','btnResetTitleTexts'
   ].forEach(id => { el[id] = document.getElementById(id); });
   const spriteSlots = { left: el.spriteLeft, center: el.spriteCenter, right: el.spriteRight };
 
@@ -1876,7 +1921,7 @@
     el.continueMark.classList.remove('hidden');
     if(state.auto){
       clearTimeout(autoTimer);
-      autoTimer = setTimeout(advance, 1100);
+      autoTimer = setTimeout(advance, autoSpeedToMs());
     }
   }
 
@@ -1979,7 +2024,16 @@
   }
   // titleConfigに設定された背景/BGMをタイトル画面に反映する。
   // 未設定（空文字）の場合は何もしない＝これまで通りのグラデーション背景・無音のまま。
+  function applyTitleTexts(){
+    el.gameLogo.textContent = titleConfig.logo;
+    el.gameLogoSub.textContent = titleConfig.logoSub;
+    el.btnStart.textContent = titleConfig.btnStart;
+    el.btnTitleLoad.textContent = titleConfig.btnLoad;
+    el.btnTitleGallery.textContent = titleConfig.btnGallery;
+    el.btnTitleOptions.textContent = titleConfig.btnOptions;
+  }
   function applyTitleScreenAssets(){
+    applyTitleTexts();
     const bgUrl = titleConfig.bgKey && backgrounds[titleConfig.bgKey] ? backgrounds[titleConfig.bgKey] : '';
     if(bgUrl){
       el.titleBgLayer.style.backgroundImage = "url('" + bgUrl + "')";
@@ -2098,6 +2152,7 @@
     el.optSeVol.value = options.seVolume; el.optSeVolVal.textContent = options.seVolume;
     el.optSeToggle.textContent = options.seOn ? 'ON' : 'OFF'; el.optSeToggle.classList.toggle('on', options.seOn);
     el.optTextSpeed.value = options.textSpeed; el.optTextSpeedVal.textContent = options.textSpeed;
+    el.optAutoSpeed.value = options.autoSpeed; el.optAutoSpeedVal.textContent = options.autoSpeed;
     el.optTrainToggle.textContent = options.trainingUiOn ? 'ON' : 'OFF'; el.optTrainToggle.classList.toggle('on', options.trainingUiOn);
   }
   function openOptions(){ syncOptionsUi(); el.optionsPanel.classList.remove('hidden'); }
@@ -2107,6 +2162,7 @@
   el.optSeVol.addEventListener('input', () => { options.seVolume = parseInt(el.optSeVol.value,10); el.optSeVolVal.textContent = options.seVolume; applyOptionsToEngine(); persistOptions(); });
   el.optSeToggle.addEventListener('click', () => { options.seOn = !options.seOn; syncOptionsUi(); applyOptionsToEngine(); persistOptions(); });
   el.optTextSpeed.addEventListener('input', () => { options.textSpeed = parseInt(el.optTextSpeed.value,10); el.optTextSpeedVal.textContent = options.textSpeed; persistOptions(); });
+  el.optAutoSpeed.addEventListener('input', () => { options.autoSpeed = parseInt(el.optAutoSpeed.value,10); el.optAutoSpeedVal.textContent = options.autoSpeed; persistOptions(); });
   el.optTrainToggle.addEventListener('click', () => { options.trainingUiOn = !options.trainingUiOn; syncOptionsUi(); persistOptions(); });
   el.btnCloseOptions.addEventListener('click', () => el.optionsPanel.classList.add('hidden'));
   el.btnOptions.addEventListener('click', openOptions);
@@ -3006,6 +3062,12 @@
       makeAssetRow(el.devCgList, key, [labelInp, imgInp], () => { delete cgGallery[key]; persistAssets(); refreshAssetLists(); });
     });
     refreshTitleAssetSelects();
+    el.titleLogoInput.value = titleConfig.logo;
+    el.titleLogoSubInput.value = titleConfig.logoSub;
+    el.titleBtnStartInput.value = titleConfig.btnStart;
+    el.titleBtnLoadInput.value = titleConfig.btnLoad;
+    el.titleBtnGalleryInput.value = titleConfig.btnGallery;
+    el.titleBtnOptionsInput.value = titleConfig.btnOptions;
     el.fontBodyInput.value = fontConfig.body;
     el.fontHeadingInput.value = fontConfig.heading;
   }
@@ -3053,6 +3115,28 @@
     applyFontConfig();
     showToast('フォントを初期値に戻しました');
   });
+  el.btnApplyTitleTexts && el.btnApplyTitleTexts.addEventListener('click', () => {
+    titleConfig.logo = el.titleLogoInput.value || '星屑ノベル';
+    titleConfig.logoSub = el.titleLogoSubInput.value || 'S T A R D U S T   N O V E L';
+    titleConfig.btnStart = el.titleBtnStartInput.value || 'はじめから';
+    titleConfig.btnLoad = el.titleBtnLoadInput.value || 'つづきから';
+    titleConfig.btnGallery = el.titleBtnGalleryInput.value || 'CGギャラリー';
+    titleConfig.btnOptions = el.titleBtnOptionsInput.value || '設定';
+    persistAssets();
+    applyTitleTexts();
+    showToast('タイトルの文言を適用しました');
+  });
+  el.btnResetTitleTexts && el.btnResetTitleTexts.addEventListener('click', () => {
+    titleConfig.logo = '星屑ノベル'; titleConfig.logoSub = 'S T A R D U S T   N O V E L';
+    titleConfig.btnStart = 'はじめから'; titleConfig.btnLoad = 'つづきから';
+    titleConfig.btnGallery = 'CGギャラリー'; titleConfig.btnOptions = '設定';
+    el.titleLogoInput.value = titleConfig.logo; el.titleLogoSubInput.value = titleConfig.logoSub;
+    el.titleBtnStartInput.value = titleConfig.btnStart; el.titleBtnLoadInput.value = titleConfig.btnLoad;
+    el.titleBtnGalleryInput.value = titleConfig.btnGallery; el.titleBtnOptionsInput.value = titleConfig.btnOptions;
+    persistAssets();
+    applyTitleTexts();
+    showToast('タイトルの文言を初期値に戻しました');
+  });
   el.btnAddChar.addEventListener('click', () => {
     const key = prompt('キャラのキー名（英数字、例: yui）');
     if(!key) return;
@@ -3098,11 +3182,25 @@
   });
   el.slotCountMinus.addEventListener('click', () => { if(SLOT_COUNT>1){ SLOT_COUNT--; persistSlotCount(); refreshSlotCountUi(); renderSlotGrid(); } });
   el.slotCountPlus.addEventListener('click', () => { if(SLOT_COUNT<30){ SLOT_COUNT++; persistSlotCount(); refreshSlotCountUi(); renderSlotGrid(); } });
-  el.btnWipeAll.addEventListener('click', () => {
-    if(!confirm('全てのセーブデータ・学習データ・CG解放状況を削除します。よろしいですか？')) return;
-    [SAVE_KEY, MEMORY_KEY, GALLERY_KEY].forEach(k => { try{ localStorage.removeItem(k); }catch(e){} });
+  // セーブ・学習データ・既読情報・CG解放状況を全て削除する共通処理。
+  // 開発者パネル（btnWipeAll）と通常の設定パネル（btnOptWipeAll）の両方から呼ばれる。
+  function wipeAllData(){
+    [SAVE_KEY, MEMORY_KEY, GALLERY_KEY, READ_HISTORY_KEY].forEach(k => { try{ localStorage.removeItem(k); }catch(e){} });
+    readHistory.clear(); // localStorageだけでなくメモリ上のSetもクリアしないと、リロードするまで既読状態が残り続ける
+    Object.keys(hubs).forEach(k => delete hubs[k]); // 好感度・moodもメモリ上から消し、次回getHub()で初期値から作り直させる
+    ensureCoreScenes(); // MAIN_CHARの基本シーン登録をhubsクリア後に復元しておく
     showToast('全データを削除しました');
-    renderSlotGrid(); updateTitleContinueButton();
+    renderSlotGrid(); updateTitleContinueButton(); updateStatusHud();
+  }
+  el.btnWipeAll.addEventListener('click', () => {
+    if(!confirm('全てのセーブデータ・学習データ・既読情報・CG解放状況を削除します。よろしいですか？')) return;
+    wipeAllData();
+  });
+  el.btnOptWipeAll && el.btnOptWipeAll.addEventListener('click', () => {
+    if(!confirm('セーブデータ・好感度や学習データ・既読情報・CGの解放状況をすべて削除します。この操作は取り消せません。よろしいですか？')) return;
+    wipeAllData();
+    el.optionsPanel.classList.add('hidden');
+    showTitle();
   });
 
   // --- モード切替 ---
